@@ -13,14 +13,15 @@
 <link rel="manifest" href="manifest.json">
 <title>Go My Picks!</title>
 <style>
-  /* Solid header color behind the status bar; the app sits just below it. */
+  :root { --gap: 14px; }   /* extra space below the clock so the header clears iPhone's blur */
   html, body { margin: 0; height: 100%; overflow: hidden; background: #1F3864; }
   @media (prefers-color-scheme: dark) { html, body { background: #1a2438; } }
   #app {
-    position: fixed; left: 0; top: env(safe-area-inset-top, 0px);
+    position: fixed; left: 0;
+    top: calc(env(safe-area-inset-top, 0px) + var(--gap));
     width: 100%;
-    height: calc(100vh - env(safe-area-inset-top, 0px));
-    height: calc(100dvh - env(safe-area-inset-top, 0px));
+    height: calc(100vh - env(safe-area-inset-top, 0px) - var(--gap));
+    height: calc(100dvh - env(safe-area-inset-top, 0px) - var(--gap));
     border: 0; display: block; background: #111418;
   }
 </style>
@@ -31,15 +32,21 @@
   // ▼▼ Paste your Apps Script web app link (ends in /exec) between the quotes ▼▼
   const APP_URL = 'https://script.google.com/macros/s/AKfycbxgRVWZw8MqjR0X715eCh27NiKC8cSjmYxiVAcMnBgF-jkDd4oZLFP87Exz3pH7puw/exec';
   // ▲▲ ------------------------------------------------------------------------ ▲▲
-  document.getElementById('app').src = APP_URL;
-  // The app tells this page its header color (light / dark / auto) so the top edge always matches.
+  const frame = document.getElementById('app');
+  frame.src = APP_URL;
+  let appWin = null;
+  // Tell the app exactly how tall the screen area is, so its header can stay fixed while the content scrolls.
+  function sendSize() { if (appWin) appWin.postMessage({ pickemVH: frame.clientHeight }, '*'); }
   window.addEventListener('message', function (e) {
     if (e.data && e.data.pickemHead) {
+      appWin = e.source; sendSize();
       document.documentElement.style.background = e.data.pickemHead;
       document.body.style.background = e.data.pickemHead;
       document.querySelector('meta[name="theme-color"]').setAttribute('content', e.data.pickemHead);
     }
   });
+  window.addEventListener('resize', sendSize);
+  window.addEventListener('orientationchange', function () { setTimeout(sendSize, 300); });
 </script>
 </body>
 </html>
