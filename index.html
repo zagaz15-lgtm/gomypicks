@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Go My Picks!">
+<meta name="theme-color" content="#1F3864">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<title>Go My Picks!</title>
+<style>
+  /* Solid header color behind the status bar; the app sits just below it. */
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #1F3864; }
+  @media (prefers-color-scheme: dark) { html, body { background: #1a2438; } }
+  #app {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    top: env(safe-area-inset-top, 0px);
+    width: 100%; height: calc(100% - env(safe-area-inset-top, 0px));
+    border: 0; background: #111418;
+  }
+</style>
+</head>
+<body>
+<iframe id="app" title="Go My Picks!" allow="clipboard-write"></iframe>
+<script>
+  // ▼▼ Paste your Apps Script web app link (ends in /exec) between the quotes ▼▼
+  const APP_URL = 'https://script.google.com/macros/s/AKfycbxgRVWZw8MqjR0X715eCh27NiKC8cSjmYxiVAcMnBgF-jkDd4oZLFP87Exz3pH7puw/exec';
+  // ▲▲ ------------------------------------------------------------------------ ▲▲
+  document.getElementById('app').src = APP_URL;
+  // The app tells this page its header color (light / dark / auto) so the top edge always matches.
+  window.addEventListener('message', function (e) {
+    if (e.data && e.data.pickemHead) {
+      document.documentElement.style.background = e.data.pickemHead;
+      document.body.style.background = e.data.pickemHead;
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', e.data.pickemHead);
+    }
+  });
+</script>
+</body>
+</html>
