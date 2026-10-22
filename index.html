@@ -13,6 +13,7 @@
 <link rel="icon" href="icon-192.png">
 <link rel="manifest" href="manifest.json">
 <title>Go My Picks!</title>
+<script src="config.js"></script>
 <style>
   :root { --gap: 14px; --foot: 46px; --turfA: #2f7a33; --turfB: #2a6e2e; }
   @media (prefers-color-scheme: dark) { :root { --turfA: #215a25; --turfB: #1d4d21; } }
@@ -51,11 +52,13 @@
 <iframe id="app" title="Go My Picks!" allow="clipboard-write"></iframe>
 <svg id="logo" viewBox="0 0 120 80" aria-label="Go My Picks!"><path d="M4 40 C 20 3, 100 3, 116 40 C 100 77, 20 77, 4 40 Z" fill="#8B4A1C" stroke="#ffffff" stroke-width="3"/><path d="M27 15 C 21 30, 21 50, 27 65 M93 15 C 99 30, 99 50, 93 65" fill="none" stroke="#ffffff" stroke-width="3"/><path d="M46 17 H74 M50 13 V21 M56 13 V21 M62 13 V21 M68 13 V21" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/><text x="60" y="42" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="13" fill="#fff">GO MY</text><text x="60" y="58" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="14" fill="#fff">PICKS!</text></svg>
 <script>
-  // ▼▼ Paste your Apps Script web app link (ends in /exec) between the quotes ▼▼
-  const APP_URL = 'PASTE_YOUR_WEB_APP_LINK_HERE';
-  // ▲▲ ------------------------------------------------------------------------ ▲▲
+  // The app link lives in config.js, so this file can be replaced anytime without re-pasting it.
+  const APP_URL = (window.GMP_APP_URL || '').trim();
   const frame = document.getElementById('app');
-  frame.src = APP_URL;
+  if (/^https:\/\/script\.google\.com\/.+\/exec/.test(APP_URL)) frame.src = APP_URL;
+  else frame.srcdoc = '<body style="font:16px -apple-system,sans-serif;padding:24px;color:#222;background:#fff">' +
+    '<h3>Almost there!</h3><p>The app link is missing. On GitHub, open <b>config.js</b> and paste your Apps Script web-app link ' +
+    '(it ends in <b>/exec</b>) between the quotes, then commit.</p></body>';
   let appWin = null;
 
   // Size the app exactly: full screen minus the status bar/gap on top and the logo strip + home indicator below.
