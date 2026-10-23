@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<!-- TEST: standard status bar (app window starts below the clock, so iOS gives it the full height below) -->
+<!-- standard status bar: the app window starts below the clock, so iOS gives it the full height to the bottom -->
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Go My Picks!">
 <meta name="theme-color" content="#2a6e2e">
@@ -16,7 +16,7 @@
 <title>Go My Picks!</title>
 <script src="config.js"></script>
 <style>
-  :root { --gap: 4px; --foot: 46px; --turfA: #2f7a33; --turfB: #2a6e2e; }
+  :root { --gap: 4px; --foot: 0px; --turfA: #2f7a33; --turfB: #2a6e2e; }
   @media (prefers-color-scheme: dark) { :root { --turfA: #215a25; --turfB: #1d4d21; } }
   /* The turf pattern is also painted on the page itself (tiles forever), so any area iOS draws outside
      the visible page — under the home-indicator bar — still shows stripes and yard lines. */
@@ -26,32 +26,22 @@
                       repeating-linear-gradient(to right, var(--turfA) 0 44px, var(--turfB) 44px 88px);
     background-size: 44px 88px, 88px 88px; background-position: center top; background-repeat: repeat; }
   body { margin: 0; height: 100%; overflow: hidden; background: transparent; }
-  /* Turf + yard lines covering the whole screen (status bar on top, logo strip at the bottom) */
+  /* Turf + yard lines covering the whole screen (behind the status bar) */
   #turf { position: fixed; left: 0; right: 0; top: -60px; height: calc(100lvh + 240px); z-index: 0;
     background-color: var(--turfB);
     background-image: linear-gradient(to right, rgba(255,255,255,.55) 0, rgba(255,255,255,.55) 2px, transparent 2px),
                       repeating-linear-gradient(to right, var(--turfA) 0 44px, var(--turfB) 44px 88px);
     background-size: 44px 100%, 88px 100%; background-position: center top; }
-  #fade { position: fixed; left: 0; right: 0; bottom: 0; height: 36px; z-index: 0; pointer-events: none;
-    background: linear-gradient(to bottom, rgba(0,0,0,0), var(--turfB)); }
-  #dbg { position: fixed; left: 8px; top: 40%; z-index: 9; background: rgba(0,0,0,.75); color: #fff; font: 12px/1.4 -apple-system, sans-serif;
-    padding: 8px 10px; border-radius: 8px; white-space: pre; display: none; }
-  #tapzone { position: fixed; left: 30%; right: 30%; bottom: 0; height: calc(var(--foot) + env(safe-area-inset-bottom, 0px)); z-index: 2; }
   #app { position: fixed; left: 0; width: 100%; z-index: 1; border: 0; display: block; background: #111418;
     top: calc(env(safe-area-inset-top, 0px) + var(--gap)); height: 70vh; }
-  /* midfield logo in the strip below the app */
-  #logo { position: fixed; z-index: 1; left: 50%; transform: translateX(-50%);
-    bottom: calc(env(safe-area-inset-bottom, 0px) + (var(--foot) - 44px) / 2); height: 44px; pointer-events: none;
-    filter: drop-shadow(0 1px 2px rgba(0,0,0,.45)); }
   #probe { position: fixed; top: 0; bottom: 0; left: 0; width: 1px; visibility: hidden; }
   #probeB { position: fixed; bottom: 0; left: 0; width: 1px; height: env(safe-area-inset-bottom, 0px); visibility: hidden; }
 </style>
 </head>
 <body>
-<div id="turf"></div><div id="fade"></div><div id="dbg"></div><div id="tapzone"></div>
+<div id="turf"></div>
 <div id="probe"></div><div id="probeB"></div>
 <iframe id="app" title="Go My Picks!" allow="clipboard-write"></iframe>
-<svg id="logo" viewBox="0 0 120 80" aria-label="Go My Picks!"><path d="M4 40 C 20 3, 100 3, 116 40 C 100 77, 20 77, 4 40 Z" fill="#8B4A1C" stroke="#ffffff" stroke-width="3"/><path d="M27 15 C 21 30, 21 50, 27 65 M93 15 C 99 30, 99 50, 93 65" fill="none" stroke="#ffffff" stroke-width="3"/><path d="M46 17 H74 M50 13 V21 M56 13 V21 M62 13 V21 M68 13 V21" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/><text x="60" y="42" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="13" fill="#fff">GO MY</text><text x="60" y="58" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="14" fill="#fff">PICKS!</text></svg>
 <script>
   // The app link lives in config.js, so this file can be replaced anytime without re-pasting it.
   const APP_URL = (window.GMP_APP_URL || '').trim();
@@ -68,17 +58,12 @@
     const bottomInset = document.getElementById('probeB').offsetHeight;
     const top = frame.getBoundingClientRect().top;
     const foot = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--foot')) || 50;
-    frame.style.height = Math.max(200, full - top - bottomInset - foot) + 'px';
-    if (/[?&]debug=1/.test(location.search) || window.__dbg) {
-      const d = document.getElementById('dbg'); d.style.display = 'block';
-      d.textContent = 'screen ' + screen.width + '×' + screen.height + '\ninnerHeight ' + innerHeight +
-        '\nvisualViewport ' + (window.visualViewport ? Math.round(visualViewport.height) : '-') +
-        '\nfixed probe ' + full + '\ntop offset ' + Math.round(top) + '\nbottom inset ' + bottomInset +
-        '\napp height ' + frame.style.height + '\nstandalone ' + (navigator.standalone === true);
-    }
+    frame.style.height = Math.max(200, full - top) + 'px';   // all the way to the bottom of the screen
+    bottomPad = bottomInset;                                    // the app keeps its last item clear of the home bar
     sendSize();
   }
-  function sendSize() { if (appWin) appWin.postMessage({ pickemVH: frame.clientHeight }, '*'); }
+  let bottomPad = 0;
+  function sendSize() { if (appWin) appWin.postMessage({ pickemVH: frame.clientHeight, pickemBottom: bottomPad }, '*'); }
 
   window.addEventListener('message', function (e) {
     if (e.data && e.data.pickemHead) {
@@ -92,12 +77,6 @@
   });
   window.addEventListener('resize', layout);
   window.addEventListener('orientationchange', function () { setTimeout(layout, 300); });
-  // tap the GO MY PICKS! football 5 times quickly to show / hide the size readout
-  let taps = [];
-  document.getElementById('tapzone').addEventListener('click', function () {
-    const now = Date.now(); taps = taps.filter(function (t) { return now - t < 2000; }); taps.push(now);
-    if (taps.length >= 5) { taps = []; window.__dbg = !window.__dbg; if (!window.__dbg) document.getElementById('dbg').style.display = 'none'; layout(); }
-  });
   layout(); setTimeout(layout, 500);
 </script>
 </body>
