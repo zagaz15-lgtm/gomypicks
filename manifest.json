@@ -3,8 +3,8 @@
   "short_name": "Go My Picks!",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#2a6e2e",
-  "theme_color": "#2a6e2e",
+  "background_color": "#05070d",
+  "theme_color": "#05070d",
   "icons": [
     {
       "src": "icon-192.png",
