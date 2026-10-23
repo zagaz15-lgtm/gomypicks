@@ -8,7 +8,7 @@
 <!-- standard status bar: the app window starts below the clock, so iOS gives it the full height to the bottom -->
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Go My Picks!">
-<meta name="theme-color" content="#2a6e2e">
+<meta name="theme-color" content="#05070d">
 <meta name="color-scheme" content="light dark">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -16,22 +16,10 @@
 <title>Go My Picks!</title>
 <script src="config.js"></script>
 <style>
-  :root { --gap: 4px; --foot: 0px; --turfA: #2f7a33; --turfB: #2a6e2e; }
-  @media (prefers-color-scheme: dark) { :root { --turfA: #215a25; --turfB: #1d4d21; } }
-  /* The turf pattern is also painted on the page itself (tiles forever), so any area iOS draws outside
-     the visible page — under the home-indicator bar — still shows stripes and yard lines. */
-  html { margin: 0; height: 100%; overflow: hidden;
-    background-color: var(--turfB);
-    background-image: linear-gradient(to right, rgba(255,255,255,.55) 0, rgba(255,255,255,.55) 2px, transparent 2px),
-                      repeating-linear-gradient(to right, var(--turfA) 0 44px, var(--turfB) 44px 88px);
-    background-size: 44px 88px, 88px 88px; background-position: center top; background-repeat: repeat; }
-  body { margin: 0; height: 100%; overflow: hidden; background: transparent; }
-  /* Turf + yard lines covering the whole screen (behind the status bar) */
-  #turf { position: fixed; left: 0; right: 0; top: -60px; height: calc(100lvh + 240px); z-index: 0;
-    background-color: var(--turfB);
-    background-image: linear-gradient(to right, rgba(255,255,255,.55) 0, rgba(255,255,255,.55) 2px, transparent 2px),
-                      repeating-linear-gradient(to right, var(--turfA) 0 44px, var(--turfB) 44px 88px);
-    background-size: 44px 100%, 88px 100%; background-position: center top; }
+  /* Plain background matching the top of the app's header (the app sends its color), so no field shows around the edges */
+  :root { --gap: 4px; --foot: 0px; --edge: #05070d; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--edge); }
+  #turf { position: fixed; left: 0; right: 0; top: -60px; height: calc(100lvh + 240px); z-index: 0; background: var(--edge); }
   #app { position: fixed; left: 0; width: 100%; z-index: 1; border: 0; display: block; background: #111418;
     top: calc(env(safe-area-inset-top, 0px) + var(--gap)); height: 70vh; }
   #probe { position: fixed; top: 0; bottom: 0; left: 0; width: 1px; visibility: hidden; }
@@ -68,9 +56,7 @@
   window.addEventListener('message', function (e) {
     if (e.data && e.data.pickemHead) {
       appWin = e.source;
-      const r = document.documentElement.style;
-      if (e.data.turfA) r.setProperty('--turfA', e.data.turfA);
-      if (e.data.turfB) r.setProperty('--turfB', e.data.turfB);
+      document.documentElement.style.setProperty('--edge', e.data.pickemHead);
       document.querySelector('meta[name="theme-color"]').setAttribute('content', e.data.pickemHead);
       layout();
     }
