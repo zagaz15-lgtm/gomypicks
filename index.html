@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- TEST: standard status bar (app window starts below the clock, so iOS gives it the full height below) -->
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Go My Picks!">
 <meta name="theme-color" content="#2a6e2e">
 <meta name="color-scheme" content="light dark">
@@ -15,7 +16,7 @@
 <title>Go My Picks!</title>
 <script src="config.js"></script>
 <style>
-  :root { --gap: 14px; --foot: 46px; --turfA: #2f7a33; --turfB: #2a6e2e; }
+  :root { --gap: 4px; --foot: 46px; --turfA: #2f7a33; --turfB: #2a6e2e; }
   @media (prefers-color-scheme: dark) { :root { --turfA: #215a25; --turfB: #1d4d21; } }
   /* The turf pattern is also painted on the page itself (tiles forever), so any area iOS draws outside
      the visible page — under the home-indicator bar — still shows stripes and yard lines. */
