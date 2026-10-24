@@ -107,13 +107,17 @@ function miniCard(g){
   return `<div class="mini" onclick="openGame(${gi})">${row(g.away,g.as)}${row(g.home,g.hs)}
     <div class="ft"><span class="${isLive(g.status)?'moved':''}">${esc(st)}</span><span>›</span></div></div>`;
 }
-let GSEL=new Set();
+let GSEL=new Set(), GSELOPEN=false;
 function toggleGsel(n){ if(GSEL.has(n)) GSEL.delete(n); else GSEL.add(n); render(); }
 function clearGsel(){ GSEL.clear(); render(); }
+function toggleGselPanel(){ GSELOPEN=!GSELOPEN; render(); }
 function gridView(gs){
   const bkn=bookieName(WEEK), ppl=GSEL.size?D.players.filter(n=>GSEL.has(n)):D.players;
-  let h=`<div class="gsel"><span class="muted">Compare:</span>${D.players.map(n=>`<button class="gchip${GSEL.has(n)?' on':''}" onclick="toggleGsel('${esc(n).replace(/'/g,"\\'")}')">${esc(n)}</button>`).join('')}
-    ${GSEL.size?`<button class="gchip clr" onclick="clearGsel()">✕ Clear (${GSEL.size})</button>`:''}</div>`;
+  const sel=[...GSEL];
+  let h=`<div class="gsel"><button class="gselbtn${GSEL.size?' on':''}" onclick="toggleGselPanel()">👥 ${GSEL.size?esc(sel.slice(0,3).join(', '))+(sel.length>3?' +'+(sel.length-3):''):'Compare people'} <span class="caret">${GSELOPEN?'▴':'▾'}</span></button>
+    ${GSEL.size?`<button class="gchip clr" onclick="clearGsel()">✕ Show all</button>`:''}
+    ${GSELOPEN?`<div class="gselpanel"><div class="gselgrid">${D.players.map((n,i)=>`<label class="gselopt"><input type="checkbox" ${GSEL.has(n)?'checked':''} onchange="toggleGsel(D.players[${i}])"> ${esc(n)}</label>`).join('')}</div>
+      <div class="gselfoot"><a href="#" onclick="clearGsel();return false;">Clear</a><button class="gchip on" onclick="toggleGselPanel()">Done</button></div></div>`:''}</div>`;
   h+='<div class="gridwrap"><table class="grid"><thead><tr><th class="stick">Team</th><th>Pts</th><th>Score</th><th>Adj</th>'+ppl.map(n=>`<th>${n===bkn?'★ ':''}${esc(n)}</th>`).join('')+'</tr></thead><tbody>';
   gs.forEach(g=>{
     const pm=D.pickMap[WEEK+'|'+g.game]||{}, fin=g.status==='Final';
