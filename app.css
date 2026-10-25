@@ -451,7 +451,7 @@
   .gselopt input{width:18px;height:18px;accent-color:#2e7d32}
   .gselfoot{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);margin-top:8px;padding-top:8px;font-size:13px}
 
-  .gpost{position:absolute;top:-42px;width:16px;height:96px;transform:translateX(-50%);z-index:1;overflow:visible;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35))}
+  .gpost{position:absolute;top:calc(57.6px - 87px);width:24px;height:96px;transform:translateX(-50%);z-index:1;overflow:visible;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35))}
   .gpost.r{transform:translateX(-50%) scaleX(-1)}
   .gplay{position:absolute;inset:0;width:100%;height:100%;overflow:visible;z-index:2;pointer-events:none}
   .gplbl{display:inline-block;margin-left:6px;font-size:11px;font-weight:800;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:1px 8px;color:var(--ink)}
