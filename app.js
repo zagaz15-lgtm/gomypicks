@@ -274,7 +274,7 @@ function closeGame(){GI=null;document.getElementById('modal').classList.add('hid
 function loadDetail(){
   if(GI==null) return; const g=D.games[GI]; const b=document.getElementById('mref'); b.textContent='…';
   google.script.run.withSuccessHandler(j=>{ if(GI==null||D.games[GI]!==g) return; GD=JSON.parse(j); b.textContent='↻'; drawDetail();
-      if(GTIMER) clearTimeout(GTIMER); if(GD.state==='in') GTIMER=setTimeout(loadDetail,30000); })
+      if(GTIMER) clearTimeout(GTIMER); if(GD.state==='in') GTIMER=setTimeout(loadDetail,20000); })
     .withFailureHandler(e=>{ b.textContent='↻'; GD={error:e.message}; drawDetail(); })
     .getGameDetail(g.week,g.espnHome);
 }
@@ -318,6 +318,32 @@ function gcPos(A,H,sit){
   if(m){ const n=Number(m[2]); return m[1]===H.abbr?100-n:m[1]===A.abbr?n:null; }
   return /(^|\s)50$/.test(t)?50:null;
 }
+let ANIMSEEN={}, LASTLBL='';   // last play already animated, per game (replays only when a new play comes in)
+function goalPost(leftPct){ return `<svg class="gpost" style="left:${leftPct}%" viewBox="0 0 30 40" aria-hidden="true"><path d="M15 40 V22 M4 22 H26 M4 22 V2 M26 22 V2" stroke="#f5c518" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`; }
+const MINI_BALL='<ellipse cx="0" cy="0" rx="9" ry="5.5" fill="#8B4A1C" stroke="#fff" stroke-width="1.2"/><path d="M-3 0 H3 M-1.5 -1.6 V1.6 M0 -1.6 V1.6 M1.5 -1.6 V1.6" stroke="#fff" stroke-width=".9"/>';
+function playOverlay(pos,dir,sit,X,poss){
+  if(pos==null) return '';
+  const W=400, GY=62, x=p=>X(Math.max(0,Math.min(100,p)))*W/100, bx=x(pos);
+  const type=String(sit.lastPlayType||''), yds=sit.lastPlayYards, sameTeam=!sit.lastPlayTeam||sit.lastPlayTeam===poss;
+  const isInc=/incomplet/i.test(type), isPass=/pass/i.test(type)&&!/interception/i.test(type), isRun=/rush|run/i.test(type)&&!/fumble/i.test(type);
+  let path='', endX=bx, kind='';
+  if(dir&&sameTeam&&isPass&&isInc){ const s=bx, e=x(pos+dir*12); path=`M${s} ${GY} Q${(s+e)/2} -22 ${e} ${GY}`; endX=e; kind='inc'; }
+  else if(dir&&sameTeam&&(isPass||isRun)&&yds!=null&&!isNaN(yds)&&yds!==0){ const s=x(pos-dir*yds); path=isPass?`M${s} ${GY} Q${(s+bx)/2} -22 ${bx} ${GY}`:`M${s} ${GY} L${bx} ${GY}`; kind=isPass?'pass':'run'; }
+  const key=(GI==null?'':GI)+'|'+(sit.lastPlayId||sit.lastPlay||''), fresh=kind&&ANIMSEEN[GI]!==key; if(kind) ANIMSEEN[GI]=key;
+  const D1=kind==='run'?'1.1s':'1.4s', id='pm'+Math.random().toString(36).slice(2,8);
+  let svg=`<svg class="gplay" viewBox="0 0 ${W} 96" preserveAspectRatio="none" aria-hidden="true">`;
+  if(kind){
+    const sx=Number(path.split(' ')[0].slice(1));
+    svg+=`<defs><clipPath id="${id}"><rect x="${Math.min(sx,endX)}" y="-40" height="140" width="${fresh?0:Math.abs(endX-sx)}">${fresh?`<animate attributeName="width" from="0" to="${Math.abs(endX-sx)}" dur="${D1}" fill="freeze"/>${endX<sx?`<animate attributeName="x" from="${sx}" to="${endX}" dur="${D1}" fill="freeze"/>`:''}`:''}</rect></clipPath></defs>
+      <path d="${path}" fill="none" stroke="#fff" stroke-width="2.4" stroke-dasharray="5 5" stroke-linecap="round" clip-path="url(#${id})" opacity=".9" vector-effect="non-scaling-stroke"/>`;
+    if(fresh) svg+=`<g>${MINI_BALL}<animateMotion dur="${D1}" fill="freeze" ${kind==='run'?'':'rotate="auto"'} path="${path}"/>${kind==='inc'?`<animate attributeName="opacity" values="1;1;0" keyTimes="0;.9;1" dur="${D1}" fill="freeze"/>`:''}</g>`;
+    if(kind==='inc') svg+=`<g transform="translate(${endX} ${GY})" opacity="${fresh?0:1}">${fresh?`<animate attributeName="opacity" from="0" to="1" begin="${D1}" dur=".2s" fill="freeze"/>`:''}<path d="M-7 -7 L7 7 M7 -7 L-7 7" stroke="#e5484d" stroke-width="4" stroke-linecap="round"/></g>`;
+  }
+  // the ball sits on the line of scrimmage (appears there once the play animation finishes)
+  svg+=`<g transform="translate(${bx} ${GY})" opacity="${fresh&&kind!=='inc'?0:1}">${fresh&&kind!=='inc'?`<animate attributeName="opacity" from="0" to="1" begin="${D1}" dur=".15s" fill="freeze"/>`:''}${MINI_BALL}</g></svg>`;
+  LASTLBL=kind?(kind==='inc'?'Incomplete pass':kind==='pass'?'Pass +'+yds:'Run '+(yds>0?'+':'')+yds):'';
+  return svg;
+}
 function gamecast(A,H,sit,g,d){
   const pos=gcPos(A,H,sit), homeHas=sit.possession&&sit.possession===H.id, awayHas=sit.possession&&sit.possession===A.id;
   const posTeam=homeHas?g.home:awayHas?g.away:null, dir=homeHas?-1:awayHas?1:0;
@@ -333,9 +359,10 @@ function gamecast(A,H,sit,g,d){
     <div class="gcdd"><div><span class="muted">Down:</span><b>${esc(sit.downDistanceText||'—').replace(/\s+at\s+.*$/,'')}</b></div><div><span class="muted">Ball on:</span><b>${esc(sit.possessionText||'—')}</b></div></div>
     ${pos!=null?`<div class="gfield"><div class="gplane">${ez('l',A,g.away)}${ez('r',H,g.home)}${lines}
         <i class="los" style="left:${X(pos)}%"></i>${ltg!=null?`<i class="fdl" style="left:${X(ltg)}%"></i>`:''}${arrow}</div>
-      ${posTeam?`<div class="gpin" style="left:${X(pos)}%"><span>${logo(posTeam)}</span></div>`:''}</div>
+      ${posTeam?`<div class="gpin" style="left:${X(pos)}%"><span>${logo(posTeam)}</span></div>`:''}
+      ${goalPost(4)}${goalPost(96)}${playOverlay(pos,dir,sit,X,sit.possession)}</div>
       <div class="gnums"><span style="left:4%">${esc(A.abbr||'')}</span><span style="left:${X(20)}%">20</span><span style="left:${X(50)}%">50</span><span style="left:${X(80)}%">20</span><span style="left:96%">${esc(H.abbr||'')}</span></div>`:''}
-    ${sit.lastPlay?`<div class="lp gclp"><b>Last play</b><div>${esc(sit.lastPlay)}</div></div>`:''}
+    ${sit.lastPlay?`<div class="lp gclp"><b>Last play</b>${LASTLBL?` <span class="gplbl">${esc(LASTLBL)}</span>`:''}<div>${esc(sit.lastPlay)}</div></div>`:''}
     <table style="margin-top:6px"><tr><td class="l">${esc(g.away)} timeouts</td><td>${toDots(sit.awayTimeouts)}</td></tr><tr><td class="l">${esc(g.home)} timeouts</td><td>${toDots(sit.homeTimeouts)}</td></tr></table>
     ${d.drive&&d.drive.plays&&d.drive.plays.length?`<details class="drivebox"><summary>Drive plays (${d.drive.plays.length})</summary><ul>${d.drive.plays.map(p=>`<li>${esc(p)}</li>`).join('')}</ul></details>`:''}</div>`;
 }
@@ -875,6 +902,31 @@ function boardCall(fn,...args){ google.script.run.withSuccessHandler(j=>{ BD=JSO
 function delPost(id){ if(confirm('Remove this post from the board?')) boardCall('deleteBoardPost',id); }
 function editPost(id){ const p=BD.posts.flatMap(x=>[x].concat(x.replies||[])).find(x=>x.id===id); const t=prompt('Edit your post',p?p.text:''); if(t!=null) boardCall('editBoardPost',id,t); }
 function kindPost(id,kind){ boardCall('setBoardKind',id,kind); }
+function anyLive(){ return !!(D&&D.games.some(g=>isStarted(g)&&g.status!=='Final')); }
+let QBUSY=false;
+function quietRefresh(force,done){
+  if(QBUSY){ if(done) done(); return; } QBUSY=true;
+  google.script.run.withSuccessHandler(j=>{ QBUSY=false; HS={}; const sc=document.getElementById('scroller'), y=sc?sc.scrollTop:0; load(j); if(sc) sc.scrollTop=y; if(done) done(); })
+    .withFailureHandler(()=>{ QBUSY=false; if(done) done(); }).refreshAndGet(!!force);
+}
+// While any game is live: refresh scores every minute (skipped while typing or making picks, or if the app is in the background)
+setInterval(()=>{ const ae=document.activeElement, typing=ae&&/INPUT|TEXTAREA|SELECT/.test(ae.tagName);
+  if(document.hidden||!D||!anyLive()||TAB==='pick'||typing) return; quietRefresh(false); },60000);
+// Pull down at the top of any main tab to refresh
+(function(){
+  let y0=null, dy=0, armed=false;
+  const sc=()=>document.getElementById('scroller'), ind=()=>document.getElementById('ptr');
+  (function addIndicator(){ const s=sc(), app=document.getElementById('app'); if(!s||!app||document.getElementById('ptr')) return;
+    const el=document.createElement('div'); el.id='ptr'; el.innerHTML='<i></i><span>Pull to refresh</span>'; s.insertBefore(el,app); })();
+  const atTop=()=>{ const s=sc(); return (s?s.scrollTop:0)<=0&&(window.scrollY||0)<=0; };
+  document.addEventListener('touchstart',e=>{ if(!e.target.closest||!e.target.closest('#scroller')||!atTop()||!D){ y0=null; return; } y0=e.touches[0].clientY; dy=0; armed=false; },{passive:true});
+  document.addEventListener('touchmove',e=>{ if(y0==null) return; dy=e.touches[0].clientY-y0; const el=ind(); if(!el) return;
+    if(dy>0&&atTop()){ const h=Math.min(70,dy*.45); el.style.height=h+'px'; armed=dy>110; el.querySelector('span').textContent=armed?'Release to refresh':'Pull to refresh'; el.classList.toggle('armed',armed); } },{passive:true});
+  document.addEventListener('touchend',()=>{ if(y0==null) return; y0=null; const el=ind(); if(!el) return;
+    if(armed){ el.style.height='56px'; el.classList.add('busy'); el.querySelector('span').textContent='Refreshing…';
+      quietRefresh(true,()=>{ el.classList.remove('busy','armed'); el.style.height='0px'; }); }
+    else el.style.height='0px'; armed=false; });
+})();
 function refresh(){
   const b=document.getElementById('rf'); b.textContent='Refreshing…'; b.disabled=true;
   google.script.run.withSuccessHandler(j=>{b.textContent='↻ Refresh scores';b.disabled=false;HS={};load(j);toggleMenu(false);})
