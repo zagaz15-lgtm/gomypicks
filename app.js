@@ -938,14 +938,17 @@ setInterval(()=>{ const ae=document.activeElement, typing=ae&&/INPUT|TEXTAREA|SE
   if(document.hidden||!D||!anyLive()||TAB==='pick'||typing) return; quietRefresh(false); },60000);
 // Pull down at the top of any main tab to refresh
 (function(){
-  let y0=null, dy=0, armed=false;
+  let y0=null, x0=0, dy=0, armed=false, t0=0;
+  const PULL=230;   // how far (px) you have to drag down before a release refreshes
   const sc=()=>document.getElementById('scroller'), ind=()=>document.getElementById('ptr');
   (function addIndicator(){ const s=sc(), app=document.getElementById('app'); if(!s||!app||document.getElementById('ptr')) return;
     const el=document.createElement('div'); el.id='ptr'; el.innerHTML='<i></i><span>Pull to refresh</span>'; s.insertBefore(el,app); })();
   const atTop=()=>{ const s=sc(); return (s?s.scrollTop:0)<=0&&(window.scrollY||0)<=0; };
-  document.addEventListener('touchstart',e=>{ if(!e.target.closest||!e.target.closest('#scroller')||!atTop()||!D){ y0=null; return; } y0=e.touches[0].clientY; dy=0; armed=false; },{passive:true});
+  document.addEventListener('touchstart',e=>{ if(!e.target.closest||!e.target.closest('#scroller')||!atTop()||!D){ y0=null; return; } y0=e.touches[0].clientY; x0=e.touches[0].clientX; t0=Date.now(); dy=0; armed=false; },{passive:true});
   document.addEventListener('touchmove',e=>{ if(y0==null) return; dy=e.touches[0].clientY-y0; const el=ind(); if(!el) return;
-    if(dy>0&&atTop()){ const h=Math.min(70,dy*.45); el.style.height=h+'px'; armed=dy>110; el.querySelector('span').textContent=armed?'Release to refresh':'Pull to refresh'; el.classList.toggle('armed',armed); } },{passive:true});
+    if(Math.abs(e.touches[0].clientX-x0)>45){ y0=null; armed=false; el.style.height='0px'; el.classList.remove('armed'); return; }   // sideways swipe — not a pull
+    if(dy>0&&atTop()){ const h=Math.min(64,dy*.28); el.style.height=h+'px';                                  // more resistance
+      armed=dy>PULL&&Date.now()-t0>250; el.querySelector('span').textContent=armed?'Release to refresh':'Keep pulling to refresh'; el.classList.toggle('armed',armed); } },{passive:true});
   document.addEventListener('touchend',()=>{ if(y0==null) return; y0=null; const el=ind(); if(!el) return;
     if(armed){ el.style.height='56px'; el.classList.add('busy'); el.querySelector('span').textContent='Refreshing…';
       quietRefresh(true,()=>{ el.classList.remove('busy','armed'); el.style.height='0px'; }); }
