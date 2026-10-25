@@ -319,29 +319,48 @@ function gcPos(A,H,sit){
   return /(^|\s)50$/.test(t)?50:null;
 }
 let ANIMSEEN={}, LASTLBL='';   // last play already animated, per game (replays only when a new play comes in)
-function goalPost(leftPct){ return `<svg class="gpost" style="left:${leftPct}%" viewBox="0 0 30 40" aria-hidden="true"><path d="M15 40 V22 M4 22 H26 M4 22 V2 M26 22 V2" stroke="#f5c518" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`; }
+function goalPost(leftPct){ const flip=leftPct>50;
+  return `<svg class="gpost${flip?' r':''}" style="left:${leftPct}%" viewBox="0 0 24 96" aria-hidden="true">
+    <rect x="9.5" y="80" width="5" height="14" rx="1.5" fill="#6b7280"/>
+    <path d="M12 80 V54 M6 58 L18 50 M6 58 V8 M18 50 V0" stroke="#e8c234" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`; }
 const MINI_BALL='<ellipse cx="0" cy="0" rx="9" ry="5.5" fill="#8B4A1C" stroke="#fff" stroke-width="1.2"/><path d="M-3 0 H3 M-1.5 -1.6 V1.6 M0 -1.6 V1.6 M1.5 -1.6 V1.6" stroke="#fff" stroke-width=".9"/>';
-function playOverlay(pos,dir,sit,X,poss){
+function playOverlay(pos,dir,sit,X,poss,A,H){
   if(pos==null) return '';
   const W=400, GY=62, x=p=>X(Math.max(0,Math.min(100,p)))*W/100, bx=x(pos);
+  const txt=String(sit.lastPlay||''), num=(m=>m?Number(m[1]):null)(txt.match(/(\d+)[\s-]*(?:yd|yard)/i));
   const type=String(sit.lastPlayType||''), yds=sit.lastPlayYards, sameTeam=!sit.lastPlayTeam||sit.lastPlayTeam===poss;
   const isInc=/incomplet/i.test(type), isPass=/pass/i.test(type)&&!/interception/i.test(type), isRun=/rush|run/i.test(type)&&!/fumble/i.test(type);
-  let path='', endX=bx, kind='';
-  if(dir&&sameTeam&&isPass&&isInc){ const s=bx, e=x(pos+dir*12); path=`M${s} ${GY} Q${(s+e)/2} -22 ${e} ${GY}`; endX=e; kind='inc'; }
+  let path='', endX=bx, endY=GY, kind='', kickGood=false;
+  const kdir=sit.lastPlayTeam&&H&&sit.lastPlayTeam===H.id?-1:(sit.lastPlayTeam&&A&&sit.lastPlayTeam===A.id?1:0);   // kicking team's direction
+  const isFG=/field goal/i.test(type), isPunt=/punt/i.test(type)&&!/block/i.test(type);
+  if(isFG&&kdir){
+    const dist=(yds!=null&&!isNaN(yds)&&yds>10)?yds:num; if(dist){
+      const spot=kdir>0?100-(dist-10):(dist-10), s=x(spot), post=kdir>0?W*0.985:W*0.015;
+      kickGood=/good/i.test(type+' '+txt)&&!/no good|miss|block/i.test(type+' '+txt);
+      endX=kickGood?post:post+(kdir>0?-6:6); endY=kickGood?2:24;
+      path=`M${s} ${GY} Q${(s+endX)/2} -60 ${endX} ${endY}`; kind='fg'; }
+  }
+  else if(isPunt&&kdir){
+    const dist=(yds!=null&&!isNaN(yds)&&yds>0)?yds:num; if(dist){
+      const e=bx, s=x(pos-kdir*dist); path=`M${s} ${GY} Q${(s+e)/2} -50 ${e} ${GY}`; endX=e; kind='punt'; }
+  }
+  else if(dir&&sameTeam&&isPass&&isInc){ const s=bx, e=x(pos+dir*12); path=`M${s} ${GY} Q${(s+e)/2} -22 ${e} ${GY}`; endX=e; kind='inc'; }
   else if(dir&&sameTeam&&(isPass||isRun)&&yds!=null&&!isNaN(yds)&&yds!==0){ const s=x(pos-dir*yds); path=isPass?`M${s} ${GY} Q${(s+bx)/2} -22 ${bx} ${GY}`:`M${s} ${GY} L${bx} ${GY}`; kind=isPass?'pass':'run'; }
   const key=(GI==null?'':GI)+'|'+(sit.lastPlayId||sit.lastPlay||''), fresh=kind&&ANIMSEEN[GI]!==key; if(kind) ANIMSEEN[GI]=key;
-  const D1=kind==='run'?'1.1s':'1.4s', id='pm'+Math.random().toString(36).slice(2,8);
+  const D1=kind==='run'?'1.1s':(kind==='fg'||kind==='punt')?'1.8s':'1.4s', id='pm'+Math.random().toString(36).slice(2,8);
   let svg=`<svg class="gplay" viewBox="0 0 ${W} 96" preserveAspectRatio="none" aria-hidden="true">`;
   if(kind){
     const sx=Number(path.split(' ')[0].slice(1));
-    svg+=`<defs><clipPath id="${id}"><rect x="${Math.min(sx,endX)}" y="-40" height="140" width="${fresh?0:Math.abs(endX-sx)}">${fresh?`<animate attributeName="width" from="0" to="${Math.abs(endX-sx)}" dur="${D1}" fill="freeze"/>${endX<sx?`<animate attributeName="x" from="${sx}" to="${endX}" dur="${D1}" fill="freeze"/>`:''}`:''}</rect></clipPath></defs>
+    svg+=`<defs><clipPath id="${id}"><rect x="${Math.min(sx,endX)}" y="-80" height="200" width="${fresh?0:Math.abs(endX-sx)}">${fresh?`<animate attributeName="width" from="0" to="${Math.abs(endX-sx)}" dur="${D1}" fill="freeze"/>${endX<sx?`<animate attributeName="x" from="${sx}" to="${endX}" dur="${D1}" fill="freeze"/>`:''}`:''}</rect></clipPath></defs>
       <path d="${path}" fill="none" stroke="#fff" stroke-width="2.4" stroke-dasharray="5 5" stroke-linecap="round" clip-path="url(#${id})" opacity=".9" vector-effect="non-scaling-stroke"/>`;
-    if(fresh) svg+=`<g>${MINI_BALL}<animateMotion dur="${D1}" fill="freeze" ${kind==='run'?'':'rotate="auto"'} path="${path}"/>${kind==='inc'?`<animate attributeName="opacity" values="1;1;0" keyTimes="0;.9;1" dur="${D1}" fill="freeze"/>`:''}</g>`;
-    if(kind==='inc') svg+=`<g transform="translate(${endX} ${GY})" opacity="${fresh?0:1}">${fresh?`<animate attributeName="opacity" from="0" to="1" begin="${D1}" dur=".2s" fill="freeze"/>`:''}<path d="M-7 -7 L7 7 M7 -7 L-7 7" stroke="#e5484d" stroke-width="4" stroke-linecap="round"/></g>`;
+    const fades=kind==='inc'||kind==='fg';
+    if(fresh) svg+=`<g>${MINI_BALL}<animateMotion dur="${D1}" fill="freeze" ${kind==='run'?'':'rotate="auto"'} path="${path}"/>${fades?`<animate attributeName="opacity" values="1;1;0" keyTimes="0;.9;1" dur="${D1}" fill="freeze"/>`:''}</g>`;
+    if(kind==='inc'||(kind==='fg'&&!kickGood)) svg+=`<g transform="translate(${endX} ${kind==='fg'?endY:GY})" opacity="${fresh?0:1}">${fresh?`<animate attributeName="opacity" from="0" to="1" begin="${D1}" dur=".2s" fill="freeze"/>`:''}<path d="M-7 -7 L7 7 M7 -7 L-7 7" stroke="#e5484d" stroke-width="4" stroke-linecap="round"/></g>`;
   }
+  if(kind==='fg'&&kickGood) svg+=`<g transform="translate(${endX+(endX>200?-14:14)} 6)" opacity="${fresh?0:1}">${fresh?`<animate attributeName="opacity" from="0" to="1" begin="${D1}" dur=".2s" fill="freeze"/>`:''}<circle r="7" fill="#2e7d32"/><path d="M-3.5 0 L-1 2.8 L3.8 -2.6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></g>`;
   // the ball sits on the line of scrimmage (appears there once the play animation finishes)
   svg+=`<g transform="translate(${bx} ${GY})" opacity="${fresh&&kind!=='inc'?0:1}">${fresh&&kind!=='inc'?`<animate attributeName="opacity" from="0" to="1" begin="${D1}" dur=".15s" fill="freeze"/>`:''}${MINI_BALL}</g></svg>`;
-  LASTLBL=kind?(kind==='inc'?'Incomplete pass':kind==='pass'?'Pass +'+yds:'Run '+(yds>0?'+':'')+yds):'';
+  LASTLBL=kind==='fg'?(kickGood?'Field goal — good':'Field goal — no good'):kind==='punt'?'Punt':kind?(kind==='inc'?'Incomplete pass':kind==='pass'?'Pass +'+yds:'Run '+(yds>0?'+':'')+yds):'';
   return svg;
 }
 function gamecast(A,H,sit,g,d){
@@ -360,7 +379,7 @@ function gamecast(A,H,sit,g,d){
     ${pos!=null?`<div class="gfield"><div class="gplane">${ez('l',A,g.away)}${ez('r',H,g.home)}${lines}
         <i class="los" style="left:${X(pos)}%"></i>${ltg!=null?`<i class="fdl" style="left:${X(ltg)}%"></i>`:''}${arrow}</div>
       ${posTeam?`<div class="gpin" style="left:${X(pos)}%"><span>${logo(posTeam)}</span></div>`:''}
-      ${goalPost(4)}${goalPost(96)}${playOverlay(pos,dir,sit,X,sit.possession)}</div>
+      ${goalPost(1.5)}${goalPost(98.5)}${playOverlay(pos,dir,sit,X,sit.possession,A,H)}</div>
       <div class="gnums"><span style="left:4%">${esc(A.abbr||'')}</span><span style="left:${X(20)}%">20</span><span style="left:${X(50)}%">50</span><span style="left:${X(80)}%">20</span><span style="left:96%">${esc(H.abbr||'')}</span></div>`:''}
     ${sit.lastPlay?`<div class="lp gclp"><b>Last play</b>${LASTLBL?` <span class="gplbl">${esc(LASTLBL)}</span>`:''}<div>${esc(sit.lastPlay)}</div></div>`:''}
     <table style="margin-top:6px"><tr><td class="l">${esc(g.away)} timeouts</td><td>${toDots(sit.awayTimeouts)}</td></tr><tr><td class="l">${esc(g.home)} timeouts</td><td>${toDots(sit.homeTimeouts)}</td></tr></table>
