@@ -318,7 +318,12 @@ function gcPos(A,H,sit){
   if(m){ const n=Number(m[2]); return m[1]===H.abbr?100-n:m[1]===A.abbr?n:null; }
   return /(^|\s)50$/.test(t)?50:null;
 }
-let ANIMSEEN={}, LASTLBL='';   // last play already animated, per game (replays only when a new play comes in)
+let ANIMSEEN={}, LASTLBL='';
+const FP=520, FA=38*Math.PI/180, FH=96;
+function fScale(v){ return FP/(FP+v*Math.sin(FA)); }                       // v = depth into the field (0 = near edge, 96 = far edge)
+function fx(pct,v){ return 50+(pct-50)*fScale(v); }                          // flat % → on-screen % at that depth
+function fy(v){ return FH/2+((FH-v*Math.cos(FA))-FH/2)*fScale(v); }         // on-screen px from the top of the field box
+const MIDV=FH/2;                                                             // the ball and goal posts sit at mid-depth   // last play already animated, per game (replays only when a new play comes in)
 function goalPost(leftPct){ const flip=leftPct>50;
   return `<svg class="gpost${flip?' r':''}" style="left:${leftPct}%" viewBox="0 0 24 96" aria-hidden="true">
     <rect x="9.5" y="80" width="5" height="14" rx="1.5" fill="#6b7280"/>
@@ -326,7 +331,7 @@ function goalPost(leftPct){ const flip=leftPct>50;
 const MINI_BALL='<ellipse cx="0" cy="0" rx="9" ry="5.5" fill="#8B4A1C" stroke="#fff" stroke-width="1.2"/><path d="M-3 0 H3 M-1.5 -1.6 V1.6 M0 -1.6 V1.6 M1.5 -1.6 V1.6" stroke="#fff" stroke-width=".9"/>';
 function playOverlay(pos,dir,sit,X,poss,A,H){
   if(pos==null) return '';
-  const W=400, GY=62, x=p=>X(Math.max(0,Math.min(100,p)))*W/100, bx=x(pos);
+  const W=400, GY=fy(MIDV), x=p=>fx(X(Math.max(0,Math.min(100,p))),MIDV)*W/100, bx=x(pos);
   const txt=String(sit.lastPlay||''), num=(m=>m?Number(m[1]):null)(txt.match(/(\d+)[\s-]*(?:yd|yard)/i));
   const type=String(sit.lastPlayType||''), yds=sit.lastPlayYards, sameTeam=!sit.lastPlayTeam||sit.lastPlayTeam===poss;
   const isInc=/incomplet/i.test(type), isPass=/pass/i.test(type)&&!/interception/i.test(type), isRun=/rush|run/i.test(type)&&!/fumble/i.test(type);
@@ -335,9 +340,9 @@ function playOverlay(pos,dir,sit,X,poss,A,H){
   const isFG=/field goal/i.test(type), isPunt=/punt/i.test(type)&&!/block/i.test(type);
   if(isFG&&kdir){
     const dist=(yds!=null&&!isNaN(yds)&&yds>10)?yds:num; if(dist){
-      const spot=kdir>0?100-(dist-10):(dist-10), s=x(spot), post=kdir>0?W*0.985:W*0.015;
+      const spot=kdir>0?100-(dist-10):(dist-10), s=x(spot), post=(kdir>0?fx(100,MIDV):fx(0,MIDV))*W/100;
       kickGood=/good/i.test(type+' '+txt)&&!/no good|miss|block/i.test(type+' '+txt);
-      endX=kickGood?post:post+(kdir>0?-6:6); endY=kickGood?2:24;
+      endX=kickGood?post:post+(kdir>0?-6:6); endY=kickGood?GY-50:GY-30;
       path=`M${s} ${GY} Q${(s+endX)/2} -60 ${endX} ${endY}`; kind='fg'; }
   }
   else if(isPunt&&kdir){
@@ -357,7 +362,7 @@ function playOverlay(pos,dir,sit,X,poss,A,H){
     if(fresh) svg+=`<g>${MINI_BALL}<animateMotion dur="${D1}" fill="freeze" ${kind==='run'?'':'rotate="auto"'} path="${path}"/>${fades?`<animate attributeName="opacity" values="1;1;0" keyTimes="0;.9;1" dur="${D1}" fill="freeze"/>`:''}</g>`;
     if(kind==='inc'||(kind==='fg'&&!kickGood)) svg+=`<g transform="translate(${endX} ${kind==='fg'?endY:GY})" opacity="${fresh?0:1}">${fresh?`<animate attributeName="opacity" from="0" to="1" begin="${D1}" dur=".2s" fill="freeze"/>`:''}<path d="M-7 -7 L7 7 M7 -7 L-7 7" stroke="#e5484d" stroke-width="4" stroke-linecap="round"/></g>`;
   }
-  if(kind==='fg'&&kickGood) svg+=`<g transform="translate(${endX+(endX>200?-14:14)} 6)" opacity="${fresh?0:1}">${fresh?`<animate attributeName="opacity" from="0" to="1" begin="${D1}" dur=".2s" fill="freeze"/>`:''}<circle r="7" fill="#2e7d32"/><path d="M-3.5 0 L-1 2.8 L3.8 -2.6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></g>`;
+  if(kind==='fg'&&kickGood) svg+=`<g transform="translate(${endX+(endX>200?-14:14)} ${GY-54})" opacity="${fresh?0:1}">${fresh?`<animate attributeName="opacity" from="0" to="1" begin="${D1}" dur=".2s" fill="freeze"/>`:''}<circle r="7" fill="#2e7d32"/><path d="M-3.5 0 L-1 2.8 L3.8 -2.6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></g>`;
   // the ball sits on the line of scrimmage (appears there once the play animation finishes)
   svg+=`<g transform="translate(${bx} ${GY})" opacity="${fresh&&kind!=='inc'?0:1}">${fresh&&kind!=='inc'?`<animate attributeName="opacity" from="0" to="1" begin="${D1}" dur=".15s" fill="freeze"/>`:''}${MINI_BALL}</g></svg>`;
   LASTLBL=kind==='fg'?(kickGood?'Field goal — good':'Field goal — no good'):kind==='punt'?'Punt':kind?(kind==='inc'?'Incomplete pass':kind==='pass'?'Pass +'+yds:'Run '+(yds>0?'+':'')+yds):'';
@@ -378,8 +383,8 @@ function gamecast(A,H,sit,g,d){
     <div class="gcdd"><div><span class="muted">Down:</span><b>${esc(sit.downDistanceText||'—').replace(/\s+at\s+.*$/,'')}</b></div><div><span class="muted">Ball on:</span><b>${esc(sit.possessionText||'—')}</b></div></div>
     ${pos!=null?`<div class="gfield"><div class="gplane">${ez('l',A,g.away)}${ez('r',H,g.home)}${lines}
         <i class="los" style="left:${X(pos)}%"></i>${ltg!=null?`<i class="fdl" style="left:${X(ltg)}%"></i>`:''}${arrow}</div>
-      ${posTeam?`<div class="gpin" style="left:${X(pos)}%"><span>${logo(posTeam)}</span></div>`:''}
-      ${goalPost(1.5)}${goalPost(98.5)}${playOverlay(pos,dir,sit,X,sit.possession,A,H)}</div>
+      ${posTeam?`<div class="gpin" style="left:${fx(X(pos),FH)}%"><span>${logo(posTeam)}</span></div>`:''}
+      ${goalPost(fx(0,MIDV))}${goalPost(fx(100,MIDV))}${playOverlay(pos,dir,sit,X,sit.possession,A,H)}</div>
       <div class="gnums"><span style="left:4%">${esc(A.abbr||'')}</span><span style="left:${X(20)}%">20</span><span style="left:${X(50)}%">50</span><span style="left:${X(80)}%">20</span><span style="left:96%">${esc(H.abbr||'')}</span></div>`:''}
     ${sit.lastPlay?`<div class="lp gclp"><b>Last play</b>${LASTLBL?` <span class="gplbl">${esc(LASTLBL)}</span>`:''}<div>${esc(sit.lastPlay)}</div></div>`:''}
     <table style="margin-top:6px"><tr><td class="l">${esc(g.away)} timeouts</td><td>${toDots(sit.awayTimeouts)}</td></tr><tr><td class="l">${esc(g.home)} timeouts</td><td>${toDots(sit.homeTimeouts)}</td></tr></table>
