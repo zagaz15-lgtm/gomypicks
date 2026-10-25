@@ -325,9 +325,12 @@ function fx(pct,v){ return 50+(pct-50)*fScale(v); }                          // 
 function fy(v){ return FH/2+((FH-v*Math.cos(FA))-FH/2)*fScale(v); }         // on-screen px from the top of the field box
 const MIDV=FH/2;                                                             // the ball and goal posts sit at mid-depth   // last play already animated, per game (replays only when a new play comes in)
 function goalPost(leftPct){ const flip=leftPct>50;
-  return `<svg class="gpost${flip?' r':''}" style="left:${leftPct}%" viewBox="0 0 24 96" aria-hidden="true">
-    <rect x="9.5" y="80" width="5" height="14" rx="1.5" fill="#6b7280"/>
-    <path d="M12 80 V54 M6 58 L18 50 M6 58 V8 M18 50 V0" stroke="#e8c234" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`; }
+  // ESPN-style: padded base sits BEHIND the end zone; the gooseneck curves forward so the crossbar and
+  // uprights stand directly over the back line of the end zone (the svg's center, x=20, is placed on that line).
+  return `<svg class="gpost${flip?' r':''}" style="left:${leftPct}%" viewBox="0 0 40 100" aria-hidden="true">
+    <rect x="3.5" y="84" width="6" height="15" rx="2" fill="#6b7280"/>
+    <path d="M6.5 84 V70 C6.5 62 10 59 15 58" stroke="#e8c234" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+    <path d="M14 60 L27 52 M14 60 V10 M27 52 V2" stroke="#e8c234" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`; }
 const MINI_BALL='<ellipse cx="0" cy="0" rx="9" ry="5.5" fill="#8B4A1C" stroke="#fff" stroke-width="1.2"/><path d="M-3 0 H3 M-1.5 -1.6 V1.6 M0 -1.6 V1.6 M1.5 -1.6 V1.6" stroke="#fff" stroke-width=".9"/>';
 function playOverlay(pos,dir,sit,X,poss,A,H){
   if(pos==null) return '';
