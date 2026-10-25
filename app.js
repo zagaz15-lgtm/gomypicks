@@ -715,7 +715,7 @@ function openSignin(after){ SIGNAFTER=after||null; SMSG=''; document.getElementB
 function closeSignin(){ document.getElementById('signin').classList.add('hidden'); }
 function drawSignin(){
   const el=document.getElementById('sbody'); if(!el||!D) return;
-  if(ME){ el.innerHTML=`<div class="sec who-in" style="text-align:center"><div class="av" style="margin:4px auto 8px;width:52px;height:52px;font-size:18px">${esc(initials(ME))}</div>
+  if(ME){ el.innerHTML=`<div class="sec who-in" style="text-align:center"><div style="display:flex;justify-content:center;margin:4px 0 8px">${avatar(ME,'','width:52px;height:52px;font-size:18px')}</div>
       <div>Signed in as <b>${esc(ME)}</b></div>
       <button class="gobtn" onclick="closeSignin()">Done</button>
       <button class="gobtn" style="background:var(--chip);color:var(--ink)" onclick="signOut()">Sign out / switch person</button></div>`; return; }
@@ -790,7 +790,22 @@ function closeBoard(){ document.getElementById('board').classList.add('hidden');
 function loadBoard(){ google.script.run.withSuccessHandler(j=>{ BD=JSON.parse(j); drawBoard(); })
   .withFailureHandler(e=>{ BMSG=`<span class="moved">⚠️ ${esc(e.message)}</span>`; drawBoard(); }).getBoard(); }
 function linkify(s){ return esc(s).replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g,'<br>'); }
-function initials(n){ return String(n||'?').split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
+// First + last initials from the Bookies tab (falls back to the name itself)
+function initials(n){
+  const b=(D&&D.bookies||[]).find(x=>x.name===n);
+  const f=String((b&&b.first)||'').trim(), l=String((b&&b.last)||'').trim();
+  if(f||l) return ((f[0]||'')+(l[0]||'')).toUpperCase()||'?';
+  return String(n||'?').split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
+}
+// One distinct color per league member (by sheet order), readable on light and dark backgrounds
+const PCOLORS=['#e5484d','#2f80ed','#1fa35c','#d97706','#9b51e0','#0d9488','#db2777','#65a30d','#0891b2','#ea580c','#4f46e5','#059669','#c026d3','#b45309','#2563eb','#dc2626','#7c3aed','#0f766e','#be185d','#4d7c0f'];
+function personColor(n){
+  const i=D&&D.players?D.players.indexOf(n):-1;
+  if(i>=0) return PCOLORS[i%PCOLORS.length];
+  let h=0; for(const c of String(n||'')) h=(h*31+c.charCodeAt(0))>>>0; return PCOLORS[h%PCOLORS.length];
+}
+function avatar(n,cls,style){ return `<span class="av${cls?' '+cls:''}" style="background:${personColor(n)};${style||''}">${esc(initials(n))}</span>`; }
+function nameTag(n){ return `<b class="pname" style="color:${personColor(n)}">${esc(n)}</b>`; }
 function rxBar(p){
   const rx=p.reactions||{}, keys=Object.keys(rx).filter(k=>rx[k]&&rx[k].length);
   const chips=keys.map(k=>`<button class="rx${ME&&rx[k].indexOf(ME)>=0?' me':''}" title="${esc(rx[k].join(', '))}" onclick="react('${p.id}','${k}')">${k} ${rx[k].length}</button>`).join('');
@@ -811,7 +826,7 @@ function postActs(p,isReply){
 }
 function bpost(p){
   const reps=p.replies||[];
-  const replies=reps.map(r=>`<div class="br"><div class="bph"><span class="av sm">${esc(initials(r.author))}</span><div><b>${esc(r.author)}</b> <span class="muted">${ago(r.ts)}${r.edited?' · edited':''}</span></div></div>
+  const replies=reps.map(r=>`<div class="br"><div class="bph">${avatar(r.author,'sm')}<div>${nameTag(r.author)} <span class="muted">${ago(r.ts)}${r.edited?' · edited':''}</span></div></div>
       ${postBody(r)}<div class="bfoot">${rxBar(r)}<div class="bpa">${postActs(r,true)}</div></div></div>`).join('');
   const composer=RTO===p.id?`<div class="brc"><textarea id="rtext" rows="2" placeholder="Reply to ${esc(p.author)}…" oninput="RTEXT=this.value">${esc(RTEXT)}</textarea>
       ${RFILES.length?`<div class="bsel">${RFILES.map((f,i)=>`<span>${f.mime.startsWith('image/')?'🖼️':'📎'} ${esc(f.name)} <a href="#" onclick="RFILES.splice(${i},1);drawBoard();return false;">✕</a></span>`).join('')}</div>`:''}
@@ -820,7 +835,7 @@ function bpost(p){
       <button class="bpost" ${RBUSY?'disabled':''} onclick="sendReply('${p.id}')">${RBUSY?'Sending…':'Reply'}</button></div></div>`:'';
   const col=!!COLL[p.id], nrx=Object.values(p.reactions||{}).reduce((s,a)=>s+(a?a.length:0),0);
   const preview=col?`<div class="bprev">${p.poll?'📊 ':''}${esc(String(p.text||'').split('\n')[0]||(p.att.length?'📎 attachment':''))}</div><div class="muted bcnt">${reps.length?reps.length+' repl'+(reps.length===1?'y':'ies'):''}${reps.length&&nrx?' · ':''}${nrx?nrx+' reaction'+(nrx===1?'':'s'):''}</div>`:'';
-  return `<div class="bp${p.kind==='announcement'?' ann':''}${col?' col':''}"><div class="bph" onclick="toggleColl('${p.id}')"><span class="av">${esc(initials(p.author))}</span><div style="flex:1;min-width:0"><b>${esc(p.author)}</b>
+  return `<div class="bp${p.kind==='announcement'?' ann':''}${col?' col':''}"><div class="bph" onclick="toggleColl('${p.id}')">${avatar(p.author)}<div style="flex:1;min-width:0">${nameTag(p.author)}
       <div class="muted">${p.kind==='announcement'?'📌 Announcement · ':''}${ago(p.ts)}${p.edited?' · edited':''}</div>${preview}</div><span class="bchev" aria-label="${col?'Expand':'Collapse'}">${col?'▸':'▾'}</span></div>
     ${col?'':`${postBody(p)}<div class="bfoot">${rxBar(p)}<div class="bpa">${postActs(p,false)}</div></div>
     ${reps.length?`<div class="brs"><div class="brn">${reps.length} repl${reps.length===1?'y':'ies'}</div>${replies}</div>`:''}${composer}`}</div>`;
