@@ -450,3 +450,11 @@
   .gselopt{display:flex;align-items:center;gap:8px;font-size:14px;padding:6px 2px;cursor:pointer}
   .gselopt input{width:18px;height:18px;accent-color:#2e7d32}
   .gselfoot{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);margin-top:8px;padding-top:8px;font-size:13px}
+
+  .gpost{position:absolute;top:-30px;width:22px;height:30px;transform:translateX(-50%);z-index:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,.4))}
+  .gplay{position:absolute;inset:0;width:100%;height:100%;overflow:visible;z-index:2;pointer-events:none}
+  .gplbl{display:inline-block;margin-left:6px;font-size:11px;font-weight:800;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:1px 8px;color:var(--ink)}
+  #ptr{height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;color:var(--muted);transition:height .2s}
+  #ptr i{display:inline-block;width:22px;height:14px;border-radius:50%;background:#8B4A1C;border:1.5px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.15);transition:transform .2s}
+  #ptr.armed i{transform:rotate(180deg)}
+  #ptr.busy i{animation:gmpspin .8s linear infinite}
