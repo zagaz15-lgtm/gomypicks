@@ -502,3 +502,4 @@
   .grid tr.home td{border-bottom:2px solid var(--muted)}
   .grid .logo{width:calc(18px * var(--gz));height:calc(18px * var(--gz));margin-right:calc(4px * var(--gz))}
   .grid thead th{font-size:calc(11px * var(--gz))}
+  .grid th.dkth .dklock{margin:0;vertical-align:middle}.grid th.dkth .dkmini{width:calc(13px * var(--gz));height:calc(13px * var(--gz))}.grid th.dkth .lockmini{width:calc(10px * var(--gz));height:calc(11px * var(--gz))}
