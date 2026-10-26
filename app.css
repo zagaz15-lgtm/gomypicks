@@ -459,3 +459,11 @@
   #ptr i{display:inline-block;width:22px;height:14px;border-radius:50%;background:#8B4A1C;border:1.5px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.15);transition:transform .2s}
   #ptr.armed i{transform:rotate(180deg)}
   #ptr.busy i{animation:gmpspin .8s linear infinite}
+
+  .dklock{display:inline-flex;align-items:center;gap:2px;margin-right:4px;vertical-align:-2px}
+  .dkmini{width:13px;height:13px;border-radius:3px}
+  .lockmini{width:10px;height:11px;color:var(--muted)}
+  .dknow{display:inline-flex;align-items:center;gap:3px}
+  .team .sp{white-space:nowrap;display:inline-flex;align-items:center;justify-content:flex-end}
+  .meta>span:last-child{white-space:nowrap}
+  .mini .ft span:first-child{display:inline-flex;align-items:center;white-space:nowrap}
