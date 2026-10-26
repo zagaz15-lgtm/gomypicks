@@ -474,3 +474,21 @@
   .hrefresh{width:40px;height:36px;border:0;border-radius:10px;background:rgba(255,255,255,.14);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
   .hrefresh svg{width:20px;height:20px}
   .hrefresh.spin svg{animation:gmpspin .8s linear infinite}
+
+  .gsel{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .gsel .gselbtn{max-width:46%}
+  .gzoom{margin-left:auto;display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--chip)}
+  .gzoom button{border:0;background:none;color:var(--ink);font-size:17px;font-weight:700;width:30px;height:28px;cursor:pointer}
+  .gzoom span{font-size:12px;min-width:38px;text-align:center;color:var(--muted);cursor:pointer}
+  .gfpanel{width:min(340px,94vw)}
+  .gflbl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:6px 2px 4px}
+  .gfrow{display:flex;flex-wrap:wrap;gap:5px}
+  /* Sheet view: the table fills the rest of the screen and is the only thing that scrolls */
+  html.shell #scroller.fill main>.gridwrap{flex:1;min-height:0;max-height:none!important}
+  html.shell #scroller.fill main>.foot{flex:none;margin:6px 0 0}
+  .grid tbody td.muted{font-weight:400;color:var(--muted)}
+
+  .gsel{flex-wrap:nowrap}
+  .gsel .gselbtn{max-width:38%;font-size:12.5px;padding:6px 10px;flex:0 1 auto}
+  .gsel .gchip.clr{padding:4px 8px;flex:none}
+  .gzoom{flex:none}.gzoom button{width:26px}.gzoom span{min-width:34px}
