@@ -492,3 +492,13 @@
   .gsel .gselbtn{max-width:38%;font-size:12.5px;padding:6px 10px;flex:0 1 auto}
   .gsel .gchip.clr{padding:4px 8px;flex:none}
   .gzoom{flex:none}.gzoom button{width:26px}.gzoom span{min-width:34px}
+
+  /* Sheet zoom scales text, spacing and logos (not the gridlines), so every line stays a crisp 1-2px at any zoom.
+     Separate borders keep the lines on the frozen Team column too. */
+  .grid{--gz:1;border-collapse:separate;border-spacing:0;font-size:calc(13px * var(--gz))}
+  .grid th,.grid td{padding:calc(6px * var(--gz)) calc(5px * var(--gz));border:0;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .grid tr>*:first-child{border-left:0}
+  .grid thead th{border-bottom:1px solid var(--line)}
+  .grid tr.home td{border-bottom:2px solid var(--muted)}
+  .grid .logo{width:calc(18px * var(--gz));height:calc(18px * var(--gz));margin-right:calc(4px * var(--gz))}
+  .grid thead th{font-size:calc(11px * var(--gz))}
