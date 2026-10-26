@@ -63,6 +63,11 @@
   });
   window.addEventListener('resize', layout);
   window.addEventListener('orientationchange', function () { setTimeout(layout, 300); });
+  // The front-door page never scrolls; if iOS nudges it (keyboard, long sessions), taps land in the wrong place — snap it back.
+  function fixShift() { if (window.scrollY || document.documentElement.scrollTop || document.body.scrollTop) { window.scrollTo(0, 0); document.documentElement.scrollTop = 0; document.body.scrollTop = 0; } }
+  ['scroll', 'resize', 'orientationchange', 'focusin', 'focusout', 'visibilitychange', 'pageshow'].forEach(function (ev) { window.addEventListener(ev, function () { setTimeout(function () { fixShift(); layout(); }, 60); }); });
+  if (window.visualViewport) { visualViewport.addEventListener('resize', function () { setTimeout(function () { fixShift(); layout(); }, 60); }); visualViewport.addEventListener('scroll', function () { setTimeout(fixShift, 60); }); }
+  setInterval(fixShift, 3000);
   layout(); setTimeout(layout, 500);
 </script>
 </body>
