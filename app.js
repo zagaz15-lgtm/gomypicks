@@ -130,7 +130,7 @@ function filterGames(gs){
 }
 function gfLabel(){ return GF==='all'?'All games':GF==='final'?'Completed':GF==='live'?'Live':GF==='remaining'?'Remaining':GF==='pick'?GFSEL.size+' game'+(GFSEL.size===1?'':'s'):GF.slice(4); }
 function setZoom(z){ GZOOM=Math.max(.6,Math.min(1.8,Math.round(z*100)/100)); try{ localStorage.setItem('gmpGridZoom',GZOOM); }catch(e){}
-  const t=document.querySelector('table.grid'); if(t) t.style.zoom=GZOOM; const l=document.getElementById('gzl'); if(l) l.textContent=Math.round(GZOOM*100)+'%'; }
+  const t=document.querySelector('table.grid'); if(t) t.style.setProperty('--gz',GZOOM); const l=document.getElementById('gzl'); if(l) l.textContent=Math.round(GZOOM*100)+'%'; }
 // two-finger pinch on the sheet zooms the table (not the whole page)
 (function(){
   let d0=0, z0=1; const dist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
@@ -160,7 +160,7 @@ function gridView(gs){
       <div class="gflbl">Games</div><div class="gselgrid">${gs.map((g,i)=>`<label class="gselopt"><input type="checkbox" ${GFSEL.has(g.game)?'checked':''} onchange="toggleGFgame(GFGAMES[${i}])"> ${esc((D.abbrs||{})[g.away]||g.away)} @ ${esc((D.abbrs||{})[g.home]||g.home)}</label>`).join('')}</div>
       <div class="gselfoot"><a href="#" onclick="setGF('all');return false;">Show all</a><button class="gchip on" onclick="toggleGFPanel()">Done</button></div></div>`:''}</div>`;
   GFSETS=sets; GFGAMES=gs.map(g=>g.game);
-  h+=`<div class="gridwrap"><table class="grid" style="zoom:${GZOOM}"><thead>`+'<tr><th class="stick">Team</th><th>Pts</th><th>Score</th><th>Adj</th>'+ppl.map(n=>`<th>${n===bkn?'★ ':''}${esc(n)}</th>`).join('')+'</tr></thead><tbody>';
+  h+=`<div class="gridwrap"><table class="grid" style="--gz:${GZOOM}"><thead>`+'<tr><th class="stick">Team</th><th>Pts</th><th>Score</th><th>Adj</th>'+ppl.map(n=>`<th>${n===bkn?'★ ':''}${esc(n)}</th>`).join('')+'</tr></thead><tbody>';
   if(!shown.length) h+=`<tr><td class="stick muted" colspan="${4+ppl.length}">No games match this filter yet.</td></tr>`;
   shown.forEach(g=>{
     const pm=D.pickMap[WEEK+'|'+g.game]||{}, fin=g.status==='Final';
