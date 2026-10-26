@@ -77,8 +77,13 @@ function renderWeek(){
 const DK_IMG='<img class="dkmini" src="https://www.google.com/s2/favicons?domain=draftkings.com&sz=64" alt="DK">';
 const LOCK_IMG='<svg class="lockmini" viewBox="0 0 11 12" aria-hidden="true"><rect x="1" y="5" width="9" height="7" rx="1.5" fill="currentColor"/><path d="M3 5V3.5a2.5 2.5 0 0 1 5 0V5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
 const DKLOCK='<span class="dklock">'+DK_IMG+LOCK_IMG+'</span>';
+// Adjusted score shown in the app: the favorite's score minus the spread; the underdog's score as-is
+// (same result for who covered as adding the points to the underdog).
+function adjOf(g,t){ const sc=t===g.away?g.as:g.hs; if(sc===''||sc==null) return '';
+  if(g.spread===''||g.spread==null||t===g.dog) return Number(sc);
+  return Math.round((Number(sc)-Number(g.spread))*10)/10; }
 function teamRow(g,side){
-  const t=side==='a'?g.away:g.home, sc=side==='a'?g.as:g.hs, adj=side==='a'?g.aadj:g.hadj;
+  const t=side==='a'?g.away:g.home, sc=side==='a'?g.as:g.hs, adj=adjOf(g,t);
   const fav=t!==g.dog?'−'+g.spread:'+'+g.spread;
   const cov=g.status==='Final'&&g.winner===t;
   return `<div class="team${cov?' cover':''}"><span>${logo(t)}</span><span class="n">${esc(t)}<span class="rec">(${esc((D.records||{})[t]||'')})</span></span><span class="sp">${g.spread!==''?DKLOCK+fav:''}</span>
@@ -160,11 +165,11 @@ function gridView(gs){
       <div class="gflbl">Games</div><div class="gselgrid">${gs.map((g,i)=>`<label class="gselopt"><input type="checkbox" ${GFSEL.has(g.game)?'checked':''} onchange="toggleGFgame(GFGAMES[${i}])"> ${esc((D.abbrs||{})[g.away]||g.away)} @ ${esc((D.abbrs||{})[g.home]||g.home)}</label>`).join('')}</div>
       <div class="gselfoot"><a href="#" onclick="setGF('all');return false;">Show all</a><button class="gchip on" onclick="toggleGFPanel()">Done</button></div></div>`:''}</div>`;
   GFSETS=sets; GFGAMES=gs.map(g=>g.game);
-  h+=`<div class="gridwrap"><table class="grid" style="--gz:${GZOOM}"><thead>`+'<tr><th class="stick">Team</th><th>Pts</th><th>Score</th><th>Adj</th>'+ppl.map(n=>`<th>${n===bkn?'★ ':''}${esc(n)}</th>`).join('')+'</tr></thead><tbody>';
+  h+=`<div class="gridwrap"><table class="grid" style="--gz:${GZOOM}"><thead>`+'<tr><th class="stick">Team</th><th class="dkth" title="Locked DraftKings line">'+DKLOCK+'</th><th>Score</th><th>Adj</th>'+ppl.map(n=>`<th>${n===bkn?'★ ':''}${esc(n)}</th>`).join('')+'</tr></thead><tbody>';
   if(!shown.length) h+=`<tr><td class="stick muted" colspan="${4+ppl.length}">No games match this filter yet.</td></tr>`;
   shown.forEach(g=>{
     const pm=D.pickMap[WEEK+'|'+g.game]||{}, fin=g.status==='Final';
-    [['a',g.away,g.as,g.aadj],['h',g.home,g.hs,g.hadj]].forEach(([s,t,sc,adj])=>{
+    [['a',g.away,g.as,adjOf(g,g.away)],['h',g.home,g.hs,adjOf(g,g.home)]].forEach(([s,t,sc,adj])=>{
       const cov=fin&&g.winner===t;
       h+=`<tr class="${s==='h'?'home':''}"><td class="stick${cov?' cov':''}">${logo(t)}${esc(t)}</td><td class="${cov?'cov':''}">${t!==g.dog?'−'+g.spread:''}</td>
           <td class="${cov?'cov':''}">${sc}</td><td class="${cov?'cov':''}">${adj}</td>`+
@@ -561,7 +566,7 @@ function drawDetail(){
   // spread
   const fav=g.spread!==''?(g.dog===g.home?g.away:g.home):null;
   h+=`<div class="sec"><h3>Against the spread</h3><table><tr><td class="l">Locked line</td><td>${fav?esc(fav)+' −'+g.spread:'—'}</td></tr>
-     ${g.aadj!==''?`<tr><td class="l">Adjusted score</td><td>${esc(g.away)} ${g.aadj} – ${g.hadj} ${esc(g.home)}</td></tr>`:''}
+     ${adjOf(g,g.away)!==''?`<tr><td class="l">Adjusted score</td><td>${esc(g.away)} ${adjOf(g,g.away)} – ${adjOf(g,g.home)} ${esc(g.home)}</td></tr>`:''}
      ${g.winner?`<tr><td class="l">${fin?'Covered':'Covering now'}</td><td><b>${esc(g.winner)}</b></td></tr>`:''}
      ${dkText(g)?`<tr><td class="l">${isStarted(g)?'DK line at close':'Current DK line'}</td><td>${dkText(g).replace(/^<span class="dknow">.*?<\/span> /,'')}</td></tr>`:''}</table></div>`;
   if(d.error) h+=`<div class="sec muted">Couldn’t load live details: ${esc(d.error)}</div>`;
