@@ -74,11 +74,14 @@ function renderWeek(){
   h+=`<div class="foot">Scores refreshed ${esc(D.refreshed)}</div>`;
   return h;
 }
+const DK_IMG='<img class="dkmini" src="https://www.google.com/s2/favicons?domain=draftkings.com&sz=64" alt="DK">';
+const LOCK_IMG='<svg class="lockmini" viewBox="0 0 11 12" aria-hidden="true"><rect x="1" y="5" width="9" height="7" rx="1.5" fill="currentColor"/><path d="M3 5V3.5a2.5 2.5 0 0 1 5 0V5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
+const DKLOCK='<span class="dklock">'+DK_IMG+LOCK_IMG+'</span>';
 function teamRow(g,side){
   const t=side==='a'?g.away:g.home, sc=side==='a'?g.as:g.hs, adj=side==='a'?g.aadj:g.hadj;
   const fav=t!==g.dog?'−'+g.spread:'+'+g.spread;
   const cov=g.status==='Final'&&g.winner===t;
-  return `<div class="team${cov?' cover':''}"><span>${logo(t)}</span><span class="n">${esc(t)}<span class="rec">(${esc((D.records||{})[t]||'')})</span></span><span class="sp">${fav}</span>
+  return `<div class="team${cov?' cover':''}"><span>${logo(t)}</span><span class="n">${esc(t)}<span class="rec">(${esc((D.records||{})[t]||'')})</span></span><span class="sp">${g.spread!==''?DKLOCK+fav:''}</span>
           <span class="sc">${sc===''?'':sc}</span><span class="adj">${adj===''?'':'adj '+adj}</span></div>`;
 }
 function isStarted(g){return !!g.status&&g.status!=='Not started'&&g.status!=='Not found';}
@@ -91,7 +94,7 @@ function dkText(g){
   if(g.line==null) return '';
   const fav=g.line<0?g.home:g.line>0?g.away:null; const now=fav?fav+' −'+Math.abs(g.line):'PK';
   const lockedFav=g.spread!==''?(g.dog===g.home?g.away:g.home):null; const moved=lockedFav&&(fav!==lockedFav||Math.abs(g.line)!==Number(g.spread));
-  return `${isStarted(g)?'DK close':'DK now'}: <span class="${moved?'moved':''}">${esc(now)}</span>`;
+  return `<span class="dknow">${DK_IMG}${isStarted(g)?'close':'now'}:</span> <span class="${moved?'moved':''}">${esc(now)}</span>`;
 }
 function pillFor(g){const fin=g.status==='Final';
   return fin?'<span class="pill final">Final</span>':isLive(g.status)?`<span class="pill live">${esc(g.status)}</span>`:`<span class="pill">${esc(g.status)}</span>`;}
@@ -103,9 +106,9 @@ function gameCard(g){
 function miniCard(g){
   const fin=g.status==='Final', gi=D.games.indexOf(g);
   const row=(t,sc)=>`<div class="r${fin&&g.winner===t?' cover':''}">${logo(t)}<span class="nm">${esc(t)}</span><span class="s">${sc===''?'':sc}</span></div>`;
-  const st=fin?'Final':isLive(g.status)?g.status:(g.spread!==''?(g.dog===g.home?g.away:g.home)+' −'+g.spread:'');
+  const st=fin?esc('Final'):isLive(g.status)?esc(g.status):(g.spread!==''?DKLOCK+esc((g.dog===g.home?g.away:g.home)+' −'+g.spread):'');
   return `<div class="mini" onclick="openGame(${gi})">${row(g.away,g.as)}${row(g.home,g.hs)}
-    <div class="ft"><span class="${isLive(g.status)?'moved':''}">${esc(st)}</span><span>›</span></div></div>`;
+    <div class="ft"><span class="${isLive(g.status)?'moved':''}">${st}</span><span>›</span></div></div>`;
 }
 let GSEL=new Set(), GSELOPEN=false;
 function toggleGsel(n){ if(GSEL.has(n)) GSEL.delete(n); else GSEL.add(n); render(); }
@@ -151,12 +154,13 @@ function maxPts(n,w){
   return m;
 }
 function boardView(){
-  const rows=D.players.map(n=>({n,mx:maxPts(n,WEEK),wk:D.wkPts[WEEK+'|'+n]||0,tb:(D.tiebreak[n]||[])[WEEK-1],yr:(D.wkPts[WEEK+'|'+n]||0)+prevPts(n),m:weekMoney(n,WEEK)}))
+  const race=(D.contention||{})[WEEK]||{};
+  const rows=D.players.map(n=>({n,mx:race[n]?race[n].max:maxPts(n,WEEK),alive:race[n]?race[n].alive:null,wk:D.wkPts[WEEK+'|'+n]||0,tb:(D.tiebreak[n]||[])[WEEK-1],yr:(D.wkPts[WEEK+'|'+n]||0)+prevPts(n),m:weekMoney(n,WEEK)}))
     .sort((a,b)=>b.wk-a.wk||b.yr-a.yr);
   const max=rows.length?rows[0].wk:0, done=weekFinal(WEEK);
   return `<div class="card"><table><thead><tr><th class="l">Name</th><th>Wk ${WEEK}</th><th title="Most points still possible this week">Max</th><th>TB</th><th>Year</th><th>$ to date</th></tr></thead><tbody>`+
-    rows.map(r=>`<tr class="${r.wk===max&&max>0?'top':''}"><td class="l">${esc(r.n)}${r.n===bookieName(WEEK)?' <span title="Bookie">★</span>':''}</td><td class="${weekFinal(WEEK)&&r.wk<=3?'neg':''}"><b>${r.wk}</b>${weekFinal(WEEK)&&r.wk<=3?' HTC':''}</td><td class="${done?'':(r.mx>=max?'alive':'outrun')}">${r.mx}</td><td>${r.tb==null?'':r.tb}</td><td>${r.yr}</td><td>${money(r.m)}</td></tr>`).join('')+
-    '</tbody></table>'+(done?'':`<div class="foot" style="text-align:left;margin:6px 10px 8px"><b>Max</b> = most points still possible this week (green = can still catch the leader). Games that haven’t kicked off count as a win${' '}— or 2 for a whole-number line, in case of a correct push.</div>`)+'</div>';
+    rows.map(r=>`<tr class="${r.wk===max&&max>0?'top':''}"><td class="l">${esc(r.n)}${r.n===bookieName(WEEK)?' <span title="Bookie">★</span>':''}</td><td class="${weekFinal(WEEK)&&r.wk<=3?'neg':''}"><b>${r.wk}</b>${weekFinal(WEEK)&&r.wk<=3?' HTC':''}</td><td class="${done?'':((r.alive!=null?r.alive:r.mx>=max)?'alive':'outrun')}">${r.mx}</td><td>${r.tb==null?'':r.tb}</td><td>${r.yr}</td><td>${money(r.m)}</td></tr>`).join('')+
+    '</tbody></table>'+(done?'':`<div class="foot" style="text-align:left;margin:6px 10px 8px"><b>Max</b> = most points still possible this week if every remaining game goes their way. <b>Green</b> = can still win or tie for the week (it checks everyone’s actual picks, so a rival who picked the same side gains too); <s>struck through</s> = can’t catch the leader.</div>`)+'</div>';
 }
 function cupSVG(){return `<svg width="86" height="96" viewBox="0 0 86 96" aria-label="Winner's stein">
   <defs><linearGradient id="sv" x1="0" x2="1"><stop offset="0" stop-color="#8e959c"/><stop offset=".35" stop-color="#f4f6f8"/><stop offset=".6" stop-color="#c3c8cd"/><stop offset="1" stop-color="#7c838a"/></linearGradient></defs>
@@ -523,7 +527,7 @@ function drawDetail(){
   h+=`<div class="sec"><h3>Against the spread</h3><table><tr><td class="l">Locked line</td><td>${fav?esc(fav)+' −'+g.spread:'—'}</td></tr>
      ${g.aadj!==''?`<tr><td class="l">Adjusted score</td><td>${esc(g.away)} ${g.aadj} – ${g.hadj} ${esc(g.home)}</td></tr>`:''}
      ${g.winner?`<tr><td class="l">${fin?'Covered':'Covering now'}</td><td><b>${esc(g.winner)}</b></td></tr>`:''}
-     ${dkText(g)?`<tr><td class="l">${isStarted(g)?'DK line at close':'Current DK line'}</td><td>${dkText(g).replace(/^DK (now|close): /,'')}</td></tr>`:''}</table></div>`;
+     ${dkText(g)?`<tr><td class="l">${isStarted(g)?'DK line at close':'Current DK line'}</td><td>${dkText(g).replace(/^<span class="dknow">.*?<\/span> /,'')}</td></tr>`:''}</table></div>`;
   if(d.error) h+=`<div class="sec muted">Couldn’t load live details: ${esc(d.error)}</div>`;
   else if(!GD) h+=`<div class="sec">${spinner('Loading game details…',1)}</div>`;
   // game center: gamecast · box score · play-by-play · team stats · recap (stays here after the game)
@@ -944,6 +948,17 @@ function boardCall(fn,...args){ google.script.run.withSuccessHandler(j=>{ BD=JSO
 function delPost(id){ if(confirm('Remove this post from the board?')) boardCall('deleteBoardPost',id); }
 function editPost(id){ const p=BD.posts.flatMap(x=>[x].concat(x.replies||[])).find(x=>x.id===id); const t=prompt('Edit your post',p?p.text:''); if(t!=null) boardCall('editBoardPost',id,t); }
 function kindPost(id,kind){ boardCall('setBoardKind',id,kind); }
+/* Keep taps lined up with what's on screen. In the home-screen app all scrolling happens inside the app's
+   own scroll area, so the page itself should never be scrolled. iOS can nudge it (keyboard, rubber-band,
+   long sessions), which shifts every tap by that amount — snap it back whenever that happens. */
+function fixPageShift(){
+  const se=document.scrollingElement||document.documentElement;
+  if((window.scrollY||se.scrollTop||document.body.scrollTop)&&document.documentElement.classList.contains('shell')){ window.scrollTo(0,0); se.scrollTop=0; document.body.scrollTop=0; }
+}
+['scroll','resize','orientationchange','focusout','visibilitychange','pageshow'].forEach(ev=>window.addEventListener(ev,()=>setTimeout(fixPageShift,50),{passive:true}));
+document.addEventListener('visibilitychange',()=>setTimeout(fixPageShift,50));
+if(window.visualViewport){ visualViewport.addEventListener('resize',()=>setTimeout(fixPageShift,50)); visualViewport.addEventListener('scroll',()=>setTimeout(fixPageShift,50)); }
+setInterval(fixPageShift,3000);
 function anyLive(){ return !!(D&&D.games.some(g=>isStarted(g)&&g.status!=='Final')); }
 let QBUSY=false;
 function quietRefresh(force,done){
