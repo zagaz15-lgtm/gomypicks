@@ -51,7 +51,7 @@ function setWeek(d){const i=D.weeks.indexOf(WEEK)+d; if(i>=0&&i<D.weeks.length){
 function setView(v){VIEW=v;try{localStorage.setItem('pickemView',v);}catch(e){}render();}
 function render(){
   const app=document.getElementById('app'); if(!D) return;
-  document.getElementById('scroller').classList.toggle('fill',TAB==='stand');
+  document.getElementById('scroller').classList.toggle('fill',TAB==='stand'||(TAB==='week'&&VIEW==='grid'));
   app.innerHTML = TAB==='home'?renderHome():TAB==='pick'?renderPick():TAB==='week'?renderWeek():TAB==='stand'?renderStand():TAB==='push'?renderPush():renderHtc();
   layout();
 }
@@ -112,18 +112,57 @@ function miniCard(g){
     <div class="ft"><span class="${isLive(g.status)?'moved':''}">${st}</span><span>›</span></div></div>`;
 }
 let GSEL=new Set(), GSELOPEN=false;
+/* Sheet view: game filter + zoom */
+let GFSETS=[], GFGAMES=[];
+let GF='all', GFSEL=new Set(), GFOPEN=false;
+let GZOOM=1; try{ GZOOM=Number(localStorage.getItem('gmpGridZoom'))||1; }catch(e){}
+function setGF(m){ GF=m; if(m!=='pick') GFSEL.clear(); render(); }
+function toggleGFgame(g){ if(GFSEL.has(g)) GFSEL.delete(g); else GFSEL.add(g); GF=GFSEL.size?'pick':'all'; render(); }
+function toggleGFPanel(){ GFOPEN=!GFOPEN; if(GFOPEN) GSELOPEN=false; render(); }
+function gameSetOf(g){ const ev=(Array.isArray(HS[g.week])?HS[g.week]:[]).find(e=>e.espnHome===g.espnHome); return ev&&ev.date?slotOf(new Date(ev.date)).label:''; }
+function filterGames(gs){
+  if(GF==='final') return gs.filter(g=>g.status==='Final');
+  if(GF==='live') return gs.filter(g=>isStarted(g)&&g.status!=='Final');
+  if(GF==='remaining') return gs.filter(g=>g.status!=='Final');
+  if(GF.indexOf('set:')===0){ const s=GF.slice(4); return gs.filter(g=>gameSetOf(g)===s); }
+  if(GF==='pick') return gs.filter(g=>GFSEL.has(g.game));
+  return gs;
+}
+function gfLabel(){ return GF==='all'?'All games':GF==='final'?'Completed':GF==='live'?'Live':GF==='remaining'?'Remaining':GF==='pick'?GFSEL.size+' game'+(GFSEL.size===1?'':'s'):GF.slice(4); }
+function setZoom(z){ GZOOM=Math.max(.6,Math.min(1.8,Math.round(z*100)/100)); try{ localStorage.setItem('gmpGridZoom',GZOOM); }catch(e){}
+  const t=document.querySelector('table.grid'); if(t) t.style.zoom=GZOOM; const l=document.getElementById('gzl'); if(l) l.textContent=Math.round(GZOOM*100)+'%'; }
+// two-finger pinch on the sheet zooms the table (not the whole page)
+(function(){
+  let d0=0, z0=1; const dist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+  document.addEventListener('touchstart',e=>{ if(e.touches.length===2&&e.target.closest&&e.target.closest('.gridwrap')){ d0=dist(e.touches); z0=GZOOM; } },{passive:true});
+  document.addEventListener('touchmove',e=>{ if(d0&&e.touches.length===2){ if(e.cancelable) e.preventDefault(); setZoom(z0*dist(e.touches)/d0); } },{passive:false});
+  document.addEventListener('touchend',e=>{ if(e.touches.length<2) d0=0; },{passive:true});
+  ['gesturestart','gesturechange'].forEach(ev=>document.addEventListener(ev,e=>{ if(e.target.closest&&e.target.closest('.gridwrap')) e.preventDefault(); },{passive:false}));
+})();
 function toggleGsel(n){ if(GSEL.has(n)) GSEL.delete(n); else GSEL.add(n); render(); }
 function clearGsel(){ GSEL.clear(); render(); }
 function toggleGselPanel(){ GSELOPEN=!GSELOPEN; render(); }
 function gridView(gs){
   const bkn=bookieName(WEEK), ppl=GSEL.size?D.players.filter(n=>GSEL.has(n)):D.players;
   const sel=[...GSEL];
-  let h=`<div class="gsel"><button class="gselbtn${GSEL.size?' on':''}" onclick="toggleGselPanel()">👥 ${GSEL.size?esc(sel.slice(0,3).join(', '))+(sel.length>3?' +'+(sel.length-3):''):'Compare people'} <span class="caret">${GSELOPEN?'▴':'▾'}</span></button>
+  if(!HS[WEEK]) loadSchedule(WEEK);
+  const shown=filterGames(gs);
+  const sets=[...new Set(gs.map(gameSetOf).filter(Boolean))];
+  let h=`<div class="gsel"><button class="gselbtn${GSEL.size?' on':''}" onclick="GFOPEN=false;toggleGselPanel()">👥 ${GSEL.size?esc(sel.slice(0,3).join(', '))+(sel.length>3?' +'+(sel.length-3):''):'People'} <span class="caret">${GSELOPEN?'▴':'▾'}</span></button>
     ${GSEL.size?`<button class="gchip clr" onclick="clearGsel()">✕ Show all</button>`:''}
     ${GSELOPEN?`<div class="gselpanel"><div class="gselgrid">${D.players.map((n,i)=>`<label class="gselopt"><input type="checkbox" ${GSEL.has(n)?'checked':''} onchange="toggleGsel(D.players[${i}])"> ${esc(n)}</label>`).join('')}</div>
-      <div class="gselfoot"><a href="#" onclick="clearGsel();return false;">Clear</a><button class="gchip on" onclick="toggleGselPanel()">Done</button></div></div>`:''}</div>`;
-  h+='<div class="gridwrap"><table class="grid"><thead><tr><th class="stick">Team</th><th>Pts</th><th>Score</th><th>Adj</th>'+ppl.map(n=>`<th>${n===bkn?'★ ':''}${esc(n)}</th>`).join('')+'</tr></thead><tbody>';
-  gs.forEach(g=>{
+      <div class="gselfoot"><a href="#" onclick="clearGsel();return false;">Clear</a><button class="gchip on" onclick="toggleGselPanel()">Done</button></div></div>`:''}
+    <button class="gselbtn${GF!=='all'?' on':''}" onclick="toggleGFPanel()">🏈 ${esc(gfLabel())} <span class="caret">${GFOPEN?'▴':'▾'}</span></button>
+    ${GF!=='all'?`<button class="gchip clr" onclick="setGF('all')">✕</button>`:''}
+    <span class="gzoom"><button onclick="setZoom(GZOOM-.1)" aria-label="Zoom out">−</button><span id="gzl" onclick="setZoom(1)" title="Reset">${Math.round(GZOOM*100)}%</span><button onclick="setZoom(GZOOM+.1)" aria-label="Zoom in">+</button></span>
+    ${GFOPEN?`<div class="gselpanel gfpanel"><div class="gflbl">Show</div><div class="gfrow">${[['all','All games'],['final','Completed'],['live','Live'],['remaining','Remaining']].map(([k,l])=>`<button class="gchip${GF===k?' on':''}" onclick="setGF('${k}')">${l}</button>`).join('')}</div>
+      ${sets.length?`<div class="gflbl">Game sets</div><div class="gfrow">${sets.map((s,i)=>`<button class="gchip${GF==='set:'+s?' on':''}" onclick="setGF('set:'+GFSETS[${i}])">${esc(s)}</button>`).join('')}</div>`:''}
+      <div class="gflbl">Games</div><div class="gselgrid">${gs.map((g,i)=>`<label class="gselopt"><input type="checkbox" ${GFSEL.has(g.game)?'checked':''} onchange="toggleGFgame(GFGAMES[${i}])"> ${esc((D.abbrs||{})[g.away]||g.away)} @ ${esc((D.abbrs||{})[g.home]||g.home)}</label>`).join('')}</div>
+      <div class="gselfoot"><a href="#" onclick="setGF('all');return false;">Show all</a><button class="gchip on" onclick="toggleGFPanel()">Done</button></div></div>`:''}</div>`;
+  GFSETS=sets; GFGAMES=gs.map(g=>g.game);
+  h+=`<div class="gridwrap"><table class="grid" style="zoom:${GZOOM}"><thead>`+'<tr><th class="stick">Team</th><th>Pts</th><th>Score</th><th>Adj</th>'+ppl.map(n=>`<th>${n===bkn?'★ ':''}${esc(n)}</th>`).join('')+'</tr></thead><tbody>';
+  if(!shown.length) h+=`<tr><td class="stick muted" colspan="${4+ppl.length}">No games match this filter yet.</td></tr>`;
+  shown.forEach(g=>{
     const pm=D.pickMap[WEEK+'|'+g.game]||{}, fin=g.status==='Final';
     [['a',g.away,g.as,g.aadj],['h',g.home,g.hs,g.hadj]].forEach(([s,t,sc,adj])=>{
       const cov=fin&&g.winner===t;
@@ -578,7 +617,7 @@ function fmtCD(ms){ if(ms<=0) return 'Kickoff!'; const s=Math.floor(ms/1000), d=
   return (d?d+'d ':'')+(d||h?h+'h ':'')+m+'m '+String(x).padStart(2,'0')+'s'; }
 function tick(){ document.querySelectorAll('.cd[data-t]').forEach(el=>{ el.textContent=fmtCD(Number(el.dataset.t)-Date.now()); }); }
 function loadSchedule(w){
-  google.script.run.withSuccessHandler(j=>{HS[w]=JSON.parse(j); if(TAB==='home'||TAB==='pick') render();})
+  google.script.run.withSuccessHandler(j=>{HS[w]=JSON.parse(j); if(TAB==='home'||TAB==='pick'||(TAB==='week'&&VIEW==='grid')) render();})
     .withFailureHandler(e=>{HS[w]={error:e.message}; if(TAB==='home'||TAB==='pick') render();}).getWeekSchedule(w);
 }
 function contactCard(b,w,small){
