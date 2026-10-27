@@ -511,3 +511,19 @@
   #signin.kb{padding-top:12px}
   .gpause{margin-left:auto;background:var(--chip);border:1px solid var(--line);color:var(--ink);font-size:11px;font-weight:800;border-radius:6px;padding:2px 7px;white-space:nowrap}
   .gpause+.rz{margin-left:6px}
+
+  .hwnav{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:0 0 10px}
+  .hwnav button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:9px 4px;font-size:14px;font-weight:700;cursor:pointer}
+  .hwnav button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+  .hwnav button:disabled{opacity:.4}
+  .bk{cursor:pointer}.bkchev{margin-left:auto;color:var(--muted);font-size:18px;padding-left:8px}
+  .bkcard .acts{margin-top:10px}
+  /* week winner banner with a shimmering gold border */
+  .wkwin{position:relative;margin:0 0 12px;padding:16px 12px;border-radius:14px;text-align:center;background:var(--card);isolation:isolate}
+  .wkwin::before{content:"";position:absolute;inset:0;border-radius:14px;padding:3px;z-index:-1;
+    background:linear-gradient(110deg,#a77b16 0%,#f6d77a 25%,#fff4c2 35%,#d4a72c 50%,#8a6510 65%,#f6d77a 80%,#a77b16 100%);background-size:250% 100%;
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:gmpshimmer 3s linear infinite}
+  .wkwin::after{content:"";position:absolute;inset:3px;border-radius:11px;z-index:-2;background:var(--card)}
+  .wkwl{font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#b8860b}
+  .wkwn{font-size:38px;font-weight:900;line-height:1.15;margin-top:4px;color:var(--ink)}
+  @keyframes gmpshimmer{from{background-position:0% 0}to{background-position:250% 0}}
