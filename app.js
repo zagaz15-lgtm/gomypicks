@@ -324,7 +324,9 @@ function openGame(gi){GI=gi;GD=null;TN='';HSIDE='a';NEWSOPEN=false;GCTAB=null;PB
 function closeGame(){GI=null;document.getElementById('modal').classList.add('hidden');document.body.style.overflow='';if(GTIMER){clearTimeout(GTIMER);GTIMER=null;}}
 function loadDetail(){
   if(GI==null) return; const g=D.games[GI]; const b=document.getElementById('mref'); b.textContent='…';
-  google.script.run.withSuccessHandler(j=>{ if(GI==null||D.games[GI]!==g) return; GD=JSON.parse(j); b.textContent='↻'; drawDetail();
+  google.script.run.withSuccessHandler(j=>{ if(GI==null||D.games[GI]!==g) return; GD=JSON.parse(j); b.textContent='↻';
+      if(GD&&GD.away&&GD.home&&(GD.state==='in'||GD.state==='post')&&setLive(g,GD.away.score,GD.home.score,GD.state,GD.detail)) render();
+      drawDetail();
       if(GTIMER) clearTimeout(GTIMER); if(GD.state==='in') GTIMER=setTimeout(loadDetail,20000); })
     .withFailureHandler(e=>{ b.textContent='↻'; GD={error:e.message}; drawDetail(); })
     .getGameDetail(g.week,g.espnHome);
@@ -422,6 +424,25 @@ function playOverlay(pos,dir,sit,X,poss,A,H){
   LASTLBL=kind==='fg'?(kickGood?'Field goal — good':'Field goal — no good'):kind==='punt'?'Punt':kind?(kind==='inc'?'Incomplete pass':kind==='pass'?'Pass +'+yds:'Run '+(yds>0?'+':'')+yds):'';
   return svg;
 }
+let LASTSIT={};   // last known ball position per game, kept through timeouts, reviews, quarter breaks and halftime
+function sitFor(g,d){
+  const k=g.week+'|'+g.game, s=d.situation||null;
+  if(s&&(s.possessionText||s.possession)){ LASTSIT[k]=s; return s; }
+  const last=LASTSIT[k]||{};
+  const out=Object.assign({},last,s||{});
+  out.possession=last.possession||(s&&s.possession)||''; out.possessionText=last.possessionText||'';
+  out.distance=last.distance; out.downDistanceText=(s&&s.downDistanceText)||last.downDistanceText||'';
+  out.paused=true; return out;
+}
+function pauseLabel(sit,d){
+  const det=String(d.detail||''), lp=String(sit.lastPlay||'');
+  if(/half/i.test(det)) return 'Halftime';
+  if(/end of/i.test(det)) return det.replace(/^.*?(end of.*)$/i,'$1');
+  if(/timeout/i.test(lp)) return 'Timeout';
+  if(/review|challenge/i.test(lp)) return 'Under review';
+  if(/two-minute|two minute/i.test(lp)) return 'Two-minute warning';
+  return '';
+}
 function gamecast(A,H,sit,g,d){
   const pos=gcPos(A,H,sit), homeHas=sit.possession&&sit.possession===H.id, awayHas=sit.possession&&sit.possession===A.id;
   const posTeam=homeHas?g.home:awayHas?g.away:null, dir=homeHas?-1:awayHas?1:0;
@@ -433,11 +454,11 @@ function gamecast(A,H,sit,g,d){
   const arrow=(pos!=null&&dir)?`<i class="garrow ${dir<0?'left':'right'}" style="left:${dir<0?X(Math.max(0,pos-14)):X(pos)}%;width:${0.84*Math.min(14,dir<0?pos:100-pos)}%"></i>`:'';
   const lastPlayTeam=posTeam?logo(posTeam):'';
   return `<div class="gc">
-    <div class="gchead">${lastPlayTeam}<div><b>CURRENT DRIVE</b><div class="muted">${esc((d.drive&&d.drive.desc)||'')}</div></div>${sit.isRedZone?'<span class="rz">RED ZONE</span>':''}</div>
+    <div class="gchead">${lastPlayTeam}<div><b>CURRENT DRIVE</b><div class="muted">${esc((d.drive&&d.drive.desc)||'')}</div></div>${sit.paused&&pauseLabel(sit,d)?`<span class="gpause">⏸ ${esc(pauseLabel(sit,d))}</span>`:''}${sit.isRedZone?'<span class="rz">RED ZONE</span>':''}</div>
     <div class="gcdd"><div><span class="muted">Down:</span><b>${esc(sit.downDistanceText||'—').replace(/\s+at\s+.*$/,'')}</b></div><div><span class="muted">Ball on:</span><b>${esc(sit.possessionText||'—')}</b></div></div>
-    ${pos!=null?`<div class="gfield"><div class="gplane">${ez('l',A,g.away)}${ez('r',H,g.home)}${lines}
-        <i class="los" style="left:${X(pos)}%"></i>${ltg!=null?`<i class="fdl" style="left:${X(ltg)}%"></i>`:''}${arrow}</div>
-      ${posTeam?`<div class="gpin" style="left:${fx(X(pos),FH)}%"><span>${logo(posTeam)}</span></div>`:''}
+    ${true?`<div class="gfield"><div class="gplane">${ez('l',A,g.away)}${ez('r',H,g.home)}${lines}
+        ${pos!=null?`<i class="los" style="left:${X(pos)}%"></i>`:''}${ltg!=null?`<i class="fdl" style="left:${X(ltg)}%"></i>`:''}${arrow}</div>
+      ${posTeam&&pos!=null?`<div class="gpin" style="left:${fx(X(pos),FH)}%"><span>${logo(posTeam)}</span></div>`:''}
       ${goalPost(fx(0,MIDV))}${goalPost(fx(100,MIDV))}${playOverlay(pos,dir,sit,X,sit.possession,A,H)}</div>
       <div class="gnums"><span style="left:4%">${esc(A.abbr||'')}</span><span style="left:${X(20)}%">20</span><span style="left:${X(50)}%">50</span><span style="left:${X(80)}%">20</span><span style="left:96%">${esc(H.abbr||'')}</span></div>`:''}
     ${sit.lastPlay?`<div class="lp gclp"><b>Last play</b>${LASTLBL?` <span class="gplbl">${esc(LASTLBL)}</span>`:''}<div>${esc(sit.lastPlay)}</div></div>`:''}
@@ -552,7 +573,7 @@ function gameCenter(A,H,sit,g,d,aSc,hSc){
   else { if(d.state==='post'&&d.recap) tabs.push(['recap','Recap']); tabs.push(['gc','Gamecast'],['box','Box score'],['pbp','Play-by-play'],['stats','Team stats']); }
   if(!GCTAB||!tabs.find(t=>t[0]===GCTAB)) GCTAB=tabs[0][0];
   const lead=leadersHTML(d,A,H,g);
-  const gcParts=[live&&sit?gamecast(A,H,sit,g,d):'', lead, pre?predictorHTML(d,g):'', pre?injuriesHTML(d,g):''].filter(Boolean);
+  const gcParts=[live?gamecast(A,H,sitFor(g,d),g,d):'', lead, pre?predictorHTML(d,g):'', pre?injuriesHTML(d,g):''].filter(Boolean);
   const gcBody=gcParts.join('<div class="pvsep"></div>')||'<div class="muted gcempty">Gamecast details will show up closer to kickoff.</div>';
   const body=GCTAB==='gc'?gcBody:GCTAB==='preview'?previewTab(d,g):GCTAB==='box'?boxTab(d,g):GCTAB==='pbp'?pbpTab(d,A,H,g):GCTAB==='stats'?statsTab(d,g):recapTab(d);
   const inner=`${pre?'':lineScore(A,H,g,aSc,hSc)}<div class="gctabs">${tabs.map(([k,l])=>`<button class="${GCTAB===k?'on':''}" onclick="setGc('${k}')">${l}</button>`).join('')}</div><div class="gcbody">${body}</div>`;
@@ -627,8 +648,22 @@ function slotOf(d){
 function fmtCD(ms){ if(ms<=0) return 'Kickoff!'; const s=Math.floor(ms/1000), d=Math.floor(s/86400), h=Math.floor(s%86400/3600), m=Math.floor(s%3600/60), x=s%60;
   return (d?d+'d ':'')+(d||h?h+'h ':'')+m+'m '+String(x).padStart(2,'0')+'s'; }
 function tick(){ document.querySelectorAll('.cd[data-t]').forEach(el=>{ el.textContent=fmtCD(Number(el.dataset.t)-Date.now()); }); }
+// Live scores: ESPN's live feed is newer than the sheet (which refreshes every minute or so), so while a game is
+// on, its score and clock from ESPN are written onto the game itself. Every view (Home, List, Cards, Sheet,
+// game details) reads from that one place, so they always agree.
+function setLive(g,as,hs,state,detail){
+  if(!g||g.status==='Final') return false;
+  as=Number(as); hs=Number(hs); if(isNaN(as)||isNaN(hs)) return false;
+  const st=state==='post'?'Final':(detail||g.status);
+  if(g.as===as&&g.hs===hs&&g.status===st) return false;
+  g.as=as; g.hs=hs; g.status=st; return true;
+}
+function overlayLive(w){ const evs=HS[w]; if(!Array.isArray(evs)||!D) return false; let ch=false;
+  evs.forEach(ev=>{ if(ev.state!=='in'&&ev.state!=='post') return; const g=D.games.find(x=>x.week===w&&x.espnHome===ev.espnHome); if(setLive(g,ev.as,ev.hs,ev.state,ev.detail)) ch=true; });
+  return ch; }
+function liveWeeks(){ return D?[...new Set(D.games.filter(g=>isStarted(g)&&g.status!=='Final').map(g=>g.week))]:[]; }
 function loadSchedule(w){
-  google.script.run.withSuccessHandler(j=>{HS[w]=JSON.parse(j); if(TAB==='home'||TAB==='pick'||(TAB==='week'&&VIEW==='grid')) render();})
+  google.script.run.withSuccessHandler(j=>{HS[w]=JSON.parse(j); const ch=overlayLive(w); if(TAB==='home'||TAB==='pick'||(TAB==='week'&&VIEW==='grid')||ch) render();})
     .withFailureHandler(e=>{HS[w]={error:e.message}; if(TAB==='home'||TAB==='pick') render();}).getWeekSchedule(w);
 }
 function contactCard(b,w,small){
@@ -1023,7 +1058,7 @@ function anyLive(){ return !!(D&&D.games.some(g=>isStarted(g)&&g.status!=='Final
 let QBUSY=false;
 function quietRefresh(force,done){
   if(QBUSY){ if(done) done(); return; } QBUSY=true;
-  google.script.run.withSuccessHandler(j=>{ QBUSY=false; HS={}; const sc=document.getElementById('scroller'), y=sc?sc.scrollTop:0; load(j); if(sc) sc.scrollTop=y; if(done) done(); })
+  google.script.run.withSuccessHandler(j=>{ QBUSY=false; const sc=document.getElementById('scroller'), y=sc?sc.scrollTop:0; load(j); if(sc) sc.scrollTop=y; liveWeeks().forEach(w=>loadSchedule(w)); if(done) done(); })
     .withFailureHandler(()=>{ QBUSY=false; if(done) done(); }).refreshAndGet(!!force);
 }
 // While any game is live: refresh scores every minute (skipped while typing or making picks, or if the app is in the background)
