@@ -49,7 +49,9 @@ function thisWeekMoney(name,wk){ const m=(D.money||{})[name]||[]; const v=m[wk-1
 function tab(t){TAB=t;document.getElementById('scroller').scrollTop=0;try{window.scrollTo(0,0);}catch(e){}[['tHome','home'],['tPick','pick'],['tWeek','week'],['tStand','stand'],['tPush','push'],['tHtc','htc']].forEach(([id,k])=>document.getElementById(id).className=t===k?'on':'');render();}
 function setWeek(d){const i=D.weeks.indexOf(WEEK)+d; if(i>=0&&i<D.weeks.length){WEEK=D.weeks[i];render();}}
 function setView(v){VIEW=v;try{localStorage.setItem('pickemView',v);}catch(e){}render();}
+let SWIPING=false, RENDER_PENDING=false;   // never redraw the page under a finger mid-swipe (it would drop the gesture)
 function render(){
+  if(SWIPING){ RENDER_PENDING=true; return; }
   const app=document.getElementById('app'); if(!D) return;
   document.getElementById('scroller').classList.toggle('fill',TAB==='stand'||(TAB==='week'&&VIEW==='grid'));
   app.innerHTML = TAB==='home'?renderHome():TAB==='pick'?renderPick():TAB==='week'?renderWeek():TAB==='stand'?renderStand():TAB==='push'?renderPush():renderHtc();
@@ -317,6 +319,7 @@ function openGame(gi){GI=gi;GD=null;TN='';HSIDE='a';NEWSOPEN=false;GCTAB=null;PB
     y0=e.touches[0].clientY; dy=0; sheet.classList.add('dragging'); },{passive:true});
   document.addEventListener('touchmove',e=>{ if(y0==null||!sheet) return; dy=e.touches[0].clientY-y0;
     if(dy>0){ sheet.style.transform=`translateY(${dy}px)`; if(e.cancelable) e.preventDefault(); } },{passive:false});
+  document.addEventListener('touchcancel',()=>{ if(st&&st.mode==='x'&&!st.anim){ st.anim=true; place(0,true); setTimeout(cleanup,270); } },{passive:true});
   document.addEventListener('touchend',()=>{ if(y0==null||!sheet) return; sheet.classList.remove('dragging');
     if(dy>110){ sheet.style.transform='translateY(100%)'; setTimeout(()=>{ closeGame(); sheet.style.transform=''; },180); }
     else sheet.style.transform=''; y0=null; dy=0; });
@@ -705,22 +708,55 @@ function weekRecap(w){
   }
   return out;
 }
-// Swipe left / right on the Home tab to change weeks (left = next week, right = previous week)
+// Swipe the Home tab left/right to change weeks. The page follows your finger and the neighbouring week slides in
+// alongside it; past the trigger point (or with a quick flick) it finishes the slide on its own, otherwise it springs back.
+function homeHTMLFor(w){ const keep=HOMEW, fn=window.loadSchedule; let html='';
+  window.loadSchedule=x=>{ if(!HS[x]) fn(x); };                      // fetching is fine; just don't re-render mid-swipe
+  try{ HOMEW=w; html=renderHome(); }finally{ HOMEW=keep; window.loadSchedule=fn; }
+  return html; }
 (function(){
-  let x0=null, y0=0, t0=0, ok=false;
+  let st=null;   // {x0,y0,t0,mode,dx,dir,next,peek,w}
+  const sc=()=>document.getElementById('scroller'), app=()=>document.getElementById('app');
+  const curW=()=>HOMEW||autoHomeWeek(), maxW=()=>D.weeks[D.weeks.length-1]||18;
+  function makePeek(next){
+    const s=sc(), p=document.createElement('main'); p.className='peekpane';
+    p.style.top=s.scrollTop+'px'; p.style.height=s.clientHeight+'px';
+    p.innerHTML=homeHTMLFor(next); s.appendChild(p); return p;
+  }
+  function place(dx,anim){
+    const W=sc().clientWidth, a=app(), tr=anim?'transform .26s cubic-bezier(.2,.7,.3,1)':'none';
+    a.style.transition=tr; a.style.transform=`translateX(${dx}px)`;
+    if(st&&st.peek){ st.peek.style.transition=tr; st.peek.style.transform=`translateX(${dx+(st.dir<0?W:-W)}px)`; }
+  }
+  function cleanup(){ const a=app(); a.style.transition='none'; a.style.transform=''; if(st&&st.peek) st.peek.remove(); st=null; SWIPING=false; if(RENDER_PENDING){ RENDER_PENDING=false; render(); } }
   document.addEventListener('touchstart',e=>{
-    ok=false; if(TAB!=='home'||!D||e.touches.length!==1) return;
+    if(st&&st.anim) return;
+    st=null; if(TAB!=='home'||!D||e.touches.length!==1) return;
     const t=e.target; if(!t.closest||!t.closest('#scroller')||t.closest('input,textarea,select,.modal')) return;
-    x0=e.touches[0].clientX; y0=e.touches[0].clientY; t0=Date.now(); ok=true;
+    st={x0:e.touches[0].clientX,y0:e.touches[0].clientY,t0:Date.now(),mode:null,dx:0};
   },{passive:true});
-  document.addEventListener('touchend',e=>{
-    if(!ok||x0==null) return; ok=false;
-    const c=e.changedTouches[0], dx=c.clientX-x0, dy=c.clientY-y0; x0=null;
-    if(Math.abs(dx)<70||Math.abs(dy)>Math.abs(dx)*0.6||Date.now()-t0>800) return;   // must be a clear sideways swipe
-    const cur=HOMEW||autoHomeWeek(), maxW=D.weeks[D.weeks.length-1]||18, next=cur+(dx<0?1:-1);
-    if(next<1||next>maxW) return;
-    const app=document.getElementById('app'); app.classList.remove('swl','swr'); void app.offsetWidth;
-    setHomeWeek(next===autoHomeWeek()?null:next); app.classList.add(dx<0?'swl':'swr');
+  document.addEventListener('touchmove',e=>{
+    if(!st||st.anim) return;
+    const dx=e.touches[0].clientX-st.x0, dy=e.touches[0].clientY-st.y0;
+    if(!st.mode){ if(Math.abs(dx)<8&&Math.abs(dy)<8) return; st.mode=Math.abs(dx)>Math.abs(dy)*1.2?'x':'y'; }
+    if(st.mode!=='x') return;
+    SWIPING=true;
+    if(e.cancelable) e.preventDefault();                               // don't scroll the page while swiping sideways
+    const dir=dx<0?-1:1, next=curW()+(dir<0?1:-1);
+    if(!st.peek||st.dir!==dir){ if(st.peek) st.peek.remove(); st.dir=dir; st.next=next; st.peek=(next>=1&&next<=maxW())?makePeek(next):null; }
+    st.dx=st.peek?dx:dx*0.25;                                          // rubber-band at Week 1 / Week 18
+    place(st.dx,false);
+  },{passive:false});
+  document.addEventListener('touchend',()=>{
+    if(!st||st.mode!=='x'||st.anim){ if(st&&!st.anim) st=null; return; }
+    const W=sc().clientWidth, v=Math.abs(st.dx)/Math.max(1,Date.now()-st.t0);
+    const go=st.peek&&(Math.abs(st.dx)>W*0.3||(v>0.5&&Math.abs(st.dx)>40));
+    st.anim=true;
+    if(go){
+      place(st.dir<0?-W:W,true);
+      const s=st, done=()=>{ const n=s.next; cleanup(); setHomeWeek(n===autoHomeWeek()?null:n); };
+      setTimeout(done,270);
+    } else { place(0,true); setTimeout(cleanup,270); }
   },{passive:true});
 })();
 function setHomeWeek(w){ HOMEW=w; render(); const sc=document.getElementById('scroller'); if(sc) sc.scrollTop=0; }
@@ -773,8 +809,10 @@ function renderHome(){
   h+=byeLine(w);
   const nb=bookiesFor(w+1); if(nb.length) h+=contactCard(nb[0],w+1,true);
   h+=`<div class="foot">Scores refreshed ${esc(D.refreshed)}</div>`;
+  [w-1,w+1].forEach(x=>{ if(x>=1&&x<=maxW&&!HS[x]&&!PREF[x]){ PREF[x]=1; setTimeout(()=>loadSchedule(x),400); } });   // so a swipe shows the neighbouring week right away
   return h;
 }
+const PREF={};
 setInterval(()=>{ if(TAB==='home') tick(); },1000);
 
 /* ---------- Picks entry ---------- */
