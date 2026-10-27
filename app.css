@@ -473,7 +473,6 @@
   .hside.r{gap:8px;align-items:center}
   .hrefresh{width:40px;height:36px;border:0;border-radius:10px;background:rgba(255,255,255,.14);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
   .hrefresh svg{width:20px;height:20px}
-  .hrefresh.spin svg{animation:gmpspin .8s linear infinite}
 
   .gsel{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
   .gsel .gselbtn{max-width:46%}
@@ -503,3 +502,10 @@
   .grid .logo{width:calc(18px * var(--gz));height:calc(18px * var(--gz));margin-right:calc(4px * var(--gz))}
   .grid thead th{font-size:calc(11px * var(--gz))}
   .grid th.dkth .dklock{margin:0;vertical-align:middle}.grid th.dkth .dkmini{width:calc(13px * var(--gz));height:calc(13px * var(--gz))}.grid th.dkth .lockmini{width:calc(10px * var(--gz));height:calc(11px * var(--gz))}
+
+  /* refresh button: just spin the arrow while refreshing */
+  .hrefresh.busy svg{animation:gmpspin .8s linear infinite}
+  /* sign-in sheet opens near the top of the screen so the keyboard never covers it */
+  #signin{align-items:flex-start;padding-top:calc(var(--hh,0px) + 24px)}
+  #signin .signsheet{border-radius:16px;margin:0 10px;width:calc(100% - 20px);max-height:70vh;overflow:auto}
+  #signin.kb{padding-top:12px}
