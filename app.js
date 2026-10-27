@@ -689,6 +689,22 @@ function autoHomeWeek(){
   return open;
 }
 function winnerTime(w){ const lk=lastKick(w); return !!lk&&Date.now()>=nextDay(lk,2).getTime(); }   // from Tuesday on
+// Below the winner: Hind Tit Club (red) and push results (blue), only when they happened that week
+function weekRecap(w){
+  let out='';
+  const htc=D.players.filter(n=>D.picks.some(p=>p[0]===w&&p[1]===n)&&(D.wkPts[w+'|'+n]||0)<=3);
+  if(htc.length) out+=`<div class="wkbox htcbox"><div class="wkbl">Hind Tit Club</div><div class="wkbn">${htc.map(esc).join('<br>')}</div></div>`;
+  const hits=[], misses=[];
+  D.games.filter(g=>g.week===w&&g.status==='Final').forEach(g=>{
+    const pm=D.pickMap[w+'|'+g.game]||{}, short=`${esc((D.abbrs||{})[g.away]||g.away)} @ ${esc((D.abbrs||{})[g.home]||g.home)}`;
+    Object.keys(pm).forEach(n=>{ if(pm[n]!=='Push') return; (g.winner==='Push'?hits:misses).push({n,short}); });
+  });
+  if(hits.length||misses.length){
+    const row=(r,icon)=>`<div class="pushrow"><span class="pico">${icon}</span><b>${esc(r.n)}</b><span class="muted">${r.short}</span></div>`;
+    out+=`<div class="wkbox pushbox"><div class="wkbl">Pushes</div>${hits.map(r=>row(r,'✅')).join('')}${misses.map(r=>row(r,'🥃')).join('')}</div>`;
+  }
+  return out;
+}
 function setHomeWeek(w){ HOMEW=w; render(); const sc=document.getElementById('scroller'); if(sc) sc.scrollTop=0; }
 function renderHome(){
   const auto=autoHomeWeek(), w=HOMEW||auto; let h='';
@@ -697,7 +713,9 @@ function renderHome(){
     <button class="${HOMEW==null||HOMEW===auto?'on':''}" onclick="setHomeWeek(null)">This week</button>
     <button ${w>=maxW?'disabled':''} onclick="setHomeWeek(${w+1})">Week ${Math.min(maxW,w+1)} ›</button></div>`;
   const wn=String((D.winners||[])[w-1]||'').trim();
-  if(weekDone(w)&&wn&&(HOMEW!=null&&HOMEW!==auto||winnerTime(w))) h+=`<div class="wkwin"><div class="wkwl">Week ${w} Winner</div><div class="wkwn">${esc(wn)}</div></div>`;
+  const recap=weekDone(w)&&(HOMEW!=null&&HOMEW!==auto||winnerTime(w));
+  if(recap&&wn) h+=`<div class="wkwin"><div class="wkwl">Week ${w} Winner</div><div class="wkwn">${esc(wn)}</div></div>`;
+  if(recap) h+=weekRecap(w);
   const bs=bookiesFor(w);
   if(bs.length) h+=bs.map(b=>contactCard(b,w,false)).join('')+(bs.length>1?'<div class="sec moved">More than one bookie is assigned to this week — check the Bookies tab.</div>':'');
   else h+=`<div class="sec muted">No bookie assigned for Week ${w} — check the Bookies tab.</div>`;
