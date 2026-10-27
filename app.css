@@ -541,3 +541,9 @@
   #scroller{position:relative;overflow-x:hidden}
   #app{will-change:transform}
   .peekpane{position:absolute;left:0;right:0;overflow:hidden;background:var(--bg);pointer-events:none;will-change:transform;box-sizing:border-box}
+
+  .champcup{display:block;height:96px;width:auto;margin:6px auto 0;filter:drop-shadow(0 3px 4px rgba(0,0,0,.3))}
+  /* light tinted fill inside the weekly recap boxes for contrast */
+  .wkwin::after{background:linear-gradient(rgba(212,167,44,.14),rgba(212,167,44,.14)),var(--card)}
+  .htcbox{background:linear-gradient(rgba(214,69,69,.10),rgba(214,69,69,.10)),var(--card)}
+  .pushbox{background:linear-gradient(rgba(47,128,237,.10),rgba(47,128,237,.10)),var(--card)}
