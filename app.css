@@ -527,3 +527,12 @@
   .wkwl{font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#b8860b}
   .wkwn{font-size:38px;font-weight:900;line-height:1.15;margin-top:4px;color:var(--ink)}
   @keyframes gmpshimmer{from{background-position:0% 0}to{background-position:250% 0}}
+
+  .wkbox{margin:0 0 12px;padding:12px 14px;border-radius:14px;background:var(--card);text-align:center}
+  .htcbox{border:3px solid #d64545}
+  .pushbox{border:3px solid #2f80ed}
+  .wkbl{font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+  .htcbox .wkbl{color:#d64545}.pushbox .wkbl{color:#2f80ed}
+  .wkbn{font-size:30px;font-weight:900;line-height:1.2;margin-top:4px}
+  .pushrow{display:flex;align-items:center;justify-content:center;gap:8px;font-size:20px;margin-top:6px}
+  .pushrow .pico{font-size:22px}.pushrow .muted{font-size:13px;font-weight:600}
