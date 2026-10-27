@@ -537,7 +537,7 @@
   .pushrow{display:flex;align-items:center;justify-content:center;gap:8px;font-size:20px;margin-top:6px}
   .pushrow .pico{font-size:22px}.pushrow .muted{font-size:13px;font-weight:600}
 
-  #app.swl{animation:gmpswl .22s ease-out}#app.swr{animation:gmpswr .22s ease-out}
-  @keyframes gmpswl{from{transform:translateX(36px);opacity:.4}to{transform:none;opacity:1}}
-  @keyframes gmpswr{from{transform:translateX(-36px);opacity:.4}to{transform:none;opacity:1}}
-  .hwhint{text-align:center;font-size:11px;color:var(--muted);margin:-4px 0 8px}
+
+  #scroller{position:relative;overflow-x:hidden}
+  #app{will-change:transform}
+  .peekpane{position:absolute;left:0;right:0;overflow:hidden;background:var(--bg);pointer-events:none;will-change:transform;box-sizing:border-box}
