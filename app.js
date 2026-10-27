@@ -666,14 +666,38 @@ function loadSchedule(w){
   google.script.run.withSuccessHandler(j=>{HS[w]=JSON.parse(j); const ch=overlayLive(w); if(TAB==='home'||TAB==='pick'||(TAB==='week'&&VIEW==='grid')||ch) render();})
     .withFailureHandler(e=>{HS[w]={error:e.message}; if(TAB==='home'||TAB==='pick') render();}).getWeekSchedule(w);
 }
+let BKOPEN={cur:false,next:false};
+function toggleBk(k){ BKOPEN[k]=!BKOPEN[k]; render(); }
 function contactCard(b,w,small){
-  const digits=String(b.phone||'').replace(/[^0-9+]/g,'');
-  return `<div class="sec"><div class="bk"><div class="star">★</div><div class="who2"><div class="muted" style="font-size:12px">${small?'Next week (Week '+w+')':'Week '+w+' bookie'}</div>
-    <b>${esc((b.first||b.name)+' '+(b.last||''))}</b><div class="muted" style="font-size:13px">${esc(b.phone)}${b.email?' · '+esc(b.email):''}</div></div></div>
-    ${small?'':`<div class="acts">${digits?`<a href="tel:${esc(digits)}">📞 Call</a><a href="sms:${esc(digits)}">💬 Text</a>`:''}${b.email?`<a href="mailto:${esc(b.email)}">✉️ Email</a>`:''}</div>`}</div>`;
+  const digits=String(b.phone||'').replace(/[^0-9+]/g,''), k=small?'next':'cur', open=BKOPEN[k];
+  return `<div class="sec bkcard${open?' open':''}"><div class="bk" onclick="toggleBk('${k}')" role="button" aria-expanded="${open}"><div class="star">★</div><div class="who2"><div class="muted" style="font-size:12px">${small?'Next week (Week '+w+')':'Week '+w+' bookie'}</div>
+    <b>${esc((b.first||b.name)+' '+(b.last||''))}</b>${open?`<div class="muted" style="font-size:13px">${esc(b.phone)}${b.email?' · '+esc(b.email):''}</div>`:''}</div><span class="bkchev">${open?'▾':'▸'}</span></div>
+    ${open?`<div class="acts">${digits?`<a href="tel:${esc(digits)}">📞 Call</a><a href="sms:${esc(digits)}">💬 Text</a>`:''}${b.email?`<a href="mailto:${esc(b.email)}">✉️ Email</a>`:''}</div>`:''}</div>`;
 }
+/* Home week: the open week, except a just-finished week stays up until Wednesday (winner banner from Tuesday on) */
+let HOMEW=null;
+function nextDay(date,dow){ const d=new Date(date); d.setHours(0,0,0,0); do{ d.setDate(d.getDate()+1); }while(d.getDay()!==dow); return d; }
+function weekDone(w){ const gs=D.games.filter(g=>g.week===w); return gs.length>0&&gs.every(g=>g.status==='Final'); }
+function lastKick(w){ const ev=HS[w]; if(!Array.isArray(ev)||!ev.length) return null; return new Date(Math.max(...ev.map(e=>new Date(e.date).getTime()))); }
+function autoHomeWeek(){
+  const open=homeWeek(), prev=open-1;
+  if(weekDone(open)) return open;                                   // season finished: stay on the last week
+  if(prev>=1&&weekDone(prev)){
+    if(!HS[prev]){ loadSchedule(prev); return prev; }
+    const lk=lastKick(prev); if(lk&&Date.now()<nextDay(lk,3).getTime()) return prev;   // before Wednesday
+  }
+  return open;
+}
+function winnerTime(w){ const lk=lastKick(w); return !!lk&&Date.now()>=nextDay(lk,2).getTime(); }   // from Tuesday on
+function setHomeWeek(w){ HOMEW=w; render(); const sc=document.getElementById('scroller'); if(sc) sc.scrollTop=0; }
 function renderHome(){
-  const w=homeWeek(); let h='';
+  const auto=autoHomeWeek(), w=HOMEW||auto; let h='';
+  const maxW=D.weeks[D.weeks.length-1]||18;
+  h+=`<div class="hwnav"><button ${w<=1?'disabled':''} onclick="setHomeWeek(${w-1})">‹ Week ${Math.max(1,w-1)}</button>
+    <button class="${HOMEW==null||HOMEW===auto?'on':''}" onclick="setHomeWeek(null)">This week</button>
+    <button ${w>=maxW?'disabled':''} onclick="setHomeWeek(${w+1})">Week ${Math.min(maxW,w+1)} ›</button></div>`;
+  const wn=String((D.winners||[])[w-1]||'').trim();
+  if(weekDone(w)&&wn&&(HOMEW!=null&&HOMEW!==auto||winnerTime(w))) h+=`<div class="wkwin"><div class="wkwl">Week ${w} Winner</div><div class="wkwn">${esc(wn)}</div></div>`;
   const bs=bookiesFor(w);
   if(bs.length) h+=bs.map(b=>contactCard(b,w,false)).join('')+(bs.length>1?'<div class="sec moved">More than one bookie is assigned to this week — check the Bookies tab.</div>':'');
   else h+=`<div class="sec muted">No bookie assigned for Week ${w} — check the Bookies tab.</div>`;
