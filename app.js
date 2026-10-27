@@ -123,6 +123,12 @@ let GF='all', GFSEL=new Set(), GFOPEN=false;
 let GZOOM=1; try{ GZOOM=Number(localStorage.getItem('gmpGridZoom'))||1; }catch(e){}
 function setGF(m){ GF=m; if(m!=='pick') GFSEL.clear(); render(); }
 function toggleGFgame(g){ if(GFSEL.has(g)) GFSEL.delete(g); else GFSEL.add(g); GF=GFSEL.size?'pick':'all'; render(); }
+document.addEventListener('click',e=>{
+  if(!(GSELOPEN||GFOPEN)) return;
+  const t=e.target; if(!t.closest) return;
+  if(t.closest('.gselpanel')||t.closest('.gselbtn')) return;          // taps inside a panel or on its button are handled there
+  GSELOPEN=false; GFOPEN=false; render();
+});
 function toggleGFPanel(){ GFOPEN=!GFOPEN; if(GFOPEN) GSELOPEN=false; render(); }
 function gameSetOf(g){ const ev=(Array.isArray(HS[g.week])?HS[g.week]:[]).find(e=>e.espnHome===g.espnHome); return ev&&ev.date?slotOf(new Date(ev.date)).label:''; }
 function filterGames(gs){
@@ -760,6 +766,10 @@ function updateSignBtn(){ const l=document.getElementById('signLbl'); if(l) l.te
 function signinButton(label){ return `<button class="gobtn signin-cta" onclick="openSignin(()=>{ if(TAB==='pick') render(); if(!document.getElementById('board').classList.contains('hidden')) drawBoard(); })">
   <svg viewBox="0 0 24 24" width="18" height="18" style="vertical-align:-3px;margin-right:6px"><circle cx="12" cy="8" r="4" fill="currentColor"/><path d="M4 20c1.5-4 4.5-6 8-6s6.5 2 8 6" fill="currentColor"/></svg>${esc(label||'Sign in')}</button>`; }
 function openSignin(after){ SIGNAFTER=after||null; SMSG=''; document.getElementById('signin').classList.remove('hidden'); drawSignin(); }
+// When a box in the sign-in sheet gets the keyboard, keep the sheet above it.
+document.addEventListener('focusin',e=>{ const s=e.target.closest&&e.target.closest('#signin');
+  if(s){ s.classList.add('kb'); setTimeout(()=>{ try{ e.target.scrollIntoView({block:'center'}); }catch(x){} },250); } });
+document.addEventListener('focusout',e=>{ const s=e.target.closest&&e.target.closest('#signin'); if(s) setTimeout(()=>{ if(!s.contains(document.activeElement)) s.classList.remove('kb'); },150); });
 function closeSignin(){ document.getElementById('signin').classList.add('hidden'); }
 function drawSignin(){
   const el=document.getElementById('sbody'); if(!el||!D) return;
@@ -1005,8 +1015,8 @@ setInterval(fixPageShift,3000);
   const mb=document.getElementById('menuBtn'); if(!mb||document.getElementById('hdrRefresh')) return;
   const b=document.createElement('button'); b.id='hdrRefresh'; b.className='hrefresh'; b.setAttribute('aria-label','Refresh scores');
   b.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  b.onclick=()=>{ if(b.classList.contains('spin')) return; b.classList.add('spin');
-    quietRefresh(true,()=>{ b.classList.remove('spin'); if(GI!=null&&typeof loadDetail==='function') loadDetail(); if(!document.getElementById('board').classList.contains('hidden')) loadBoard(); }); };
+  b.onclick=()=>{ if(b.classList.contains('busy')) return; b.classList.add('busy');
+    quietRefresh(true,()=>{ b.classList.remove('busy'); if(GI!=null&&typeof loadDetail==='function') loadDetail(); if(!document.getElementById('board').classList.contains('hidden')) loadBoard(); }); };
   mb.parentNode.insertBefore(b,mb);
 })();
 function anyLive(){ return !!(D&&D.games.some(g=>isStarted(g)&&g.status!=='Final')); }
