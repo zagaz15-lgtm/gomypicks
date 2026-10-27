@@ -705,6 +705,24 @@ function weekRecap(w){
   }
   return out;
 }
+// Swipe left / right on the Home tab to change weeks (left = next week, right = previous week)
+(function(){
+  let x0=null, y0=0, t0=0, ok=false;
+  document.addEventListener('touchstart',e=>{
+    ok=false; if(TAB!=='home'||!D||e.touches.length!==1) return;
+    const t=e.target; if(!t.closest||!t.closest('#scroller')||t.closest('input,textarea,select,.modal')) return;
+    x0=e.touches[0].clientX; y0=e.touches[0].clientY; t0=Date.now(); ok=true;
+  },{passive:true});
+  document.addEventListener('touchend',e=>{
+    if(!ok||x0==null) return; ok=false;
+    const c=e.changedTouches[0], dx=c.clientX-x0, dy=c.clientY-y0; x0=null;
+    if(Math.abs(dx)<70||Math.abs(dy)>Math.abs(dx)*0.6||Date.now()-t0>800) return;   // must be a clear sideways swipe
+    const cur=HOMEW||autoHomeWeek(), maxW=D.weeks[D.weeks.length-1]||18, next=cur+(dx<0?1:-1);
+    if(next<1||next>maxW) return;
+    const app=document.getElementById('app'); app.classList.remove('swl','swr'); void app.offsetWidth;
+    setHomeWeek(next===autoHomeWeek()?null:next); app.classList.add(dx<0?'swl':'swr');
+  },{passive:true});
+})();
 function setHomeWeek(w){ HOMEW=w; render(); const sc=document.getElementById('scroller'); if(sc) sc.scrollTop=0; }
 function renderHome(){
   const auto=autoHomeWeek(), w=HOMEW||auto; let h='';
