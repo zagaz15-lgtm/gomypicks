@@ -45,6 +45,17 @@ function load_(json){
 }
 function weekMoney(name,uptoWeek){ // running total through uptoWeek (inclusive)
   const m=(D.money||{})[name]||[]; let t=0; for(let i=0;i<uptoWeek&&i<m.length;i++) if(m[i]!=null) t+=m[i]; return t; }
+// Push / HTC money for one person in one week: correct push +$85, missed push −$5 (shot), Hind Tit Club −$5.
+// The sheet's weekly amount already includes these, so "week money" below is the sheet amount minus this.
+function pushHtcMoney(name,wk){
+  let t=0;
+  D.games.filter(g=>g.week===wk&&g.status==='Final').forEach(g=>{ if(((D.pickMap[wk+'|'+g.game]||{})[name])==='Push') t+=g.winner==='Push'?85:-5; });
+  if(weekFinal(wk)&&D.picks.some(p=>p[0]===wk&&p[1]===name)&&(D.wkPts[wk+'|'+name]||0)<=3) t-=5;
+  return t;
+}
+function sheetMoney(name,wk){ const v=((D.money||{})[name]||[])[wk-1]; return v==null?null:v; }
+function winLoseMoney(name,wk){ const v=sheetMoney(name,wk); return v==null?null:v-pushHtcMoney(name,wk); }
+function sumWeeks(f,name,upto){ let t=0; for(let w=1;w<=upto;w++){ if(sheetMoney(name,w)!=null) t+=f(name,w)||0; } return t; }
 function thisWeekMoney(name,wk){ const m=(D.money||{})[name]||[]; const v=m[wk-1]; return v==null?null:v; }
 function tab(t){TAB=t;document.getElementById('scroller').scrollTop=0;try{window.scrollTo(0,0);}catch(e){}[['tHome','home'],['tPick','pick'],['tWeek','week'],['tStand','stand'],['tPush','push'],['tHtc','htc']].forEach(([id,k])=>document.getElementById(id).className=t===k?'on':'');render();}
 function setWeek(d){const i=D.weeks.indexOf(WEEK)+d; if(i>=0&&i<D.weeks.length){WEEK=D.weeks[i];render();}}
@@ -185,15 +196,19 @@ function gridView(gs){
           return `<td class="${ok?'ok':''}">${m}</td>`;}).join('')+'</tr>';
     });
   });
-  const row=(lbl,f)=>`<tr><td class="stick">${lbl}</td><td></td><td></td><td></td>`+ppl.map(n=>`<td>${f(n)}</td>`).join('')+'</tr>';
+  const row=(lbl,f,cls)=>`<tr${cls?` class="${cls}"`:''}><td class="stick">${lbl}</td><td></td><td></td><td></td>`+ppl.map(n=>`<td>${f(n)}</td>`).join('')+'</tr>';
   h+='</tbody><tfoot>'+
     row('Tie breaker',n=>{const v=(D.tiebreak[n]||[])[WEEK-1];return v==null?'':v;})+
     row('Wins this week',n=>{const v=D.wkPts[WEEK+'|'+n]||0;return weekFinal(WEEK)&&v<=3?`<span class="neg">${v} HTC</span>`:v;})+
     row('Wins prev. weeks',n=>prevPts(n))+
     row('Wins this year',n=>(D.wkPts[WEEK+'|'+n]||0)+prevPts(n))+
-    row('$ this week',n=>money(thisWeekMoney(n,WEEK)))+
-    row('$ prev. weeks',n=>money(weekMoney(n,WEEK-1)))+
-    row('$ to date',n=>money(weekMoney(n,WEEK)))+
+    row('$ this week',n=>money(winLoseMoney(n,WEEK)))+
+    row('$ prev. weeks',n=>money(sumWeeks(winLoseMoney,n,WEEK-1)))+
+    row('$ total',n=>money(sumWeeks(winLoseMoney,n,WEEK)),'mtot')+
+    row('$ Push / HTC this week',n=>sheetMoney(n,WEEK)==null?'':money(pushHtcMoney(n,WEEK)),'gpushsep')+
+    row('$ Push / HTC prev. weeks',n=>money(sumWeeks(pushHtcMoney,n,WEEK-1)))+
+    row('$ Push / HTC total',n=>money(sumWeeks(pushHtcMoney,n,WEEK)),'mtot')+
+    row('Grand total',n=>money(weekMoney(n,WEEK)),'mgrand')+
     '</tfoot></table></div>';
   return h;
 }
