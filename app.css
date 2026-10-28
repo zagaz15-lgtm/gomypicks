@@ -549,5 +549,7 @@
   .pushbox{background:linear-gradient(rgba(47,128,237,.10),rgba(47,128,237,.10)),var(--card)}
 
   .grid tfoot tr.mtot td{font-weight:800}
-  .grid tfoot tr.gpushsep td{border-top:2px solid var(--muted)}
   .grid tfoot tr.mgrand td{font-weight:900;border-top:3px double var(--muted);background:var(--chip)}
+  .grid tfoot tr.tbrow td,.grid tfoot tr.wyrow td{border-bottom:3px solid var(--muted)}
+  .grid tfoot tr.wltot td{border-bottom:4px double var(--muted)}
+  .grid tfoot tr.mgrand td{border-top:4px double var(--muted)}
