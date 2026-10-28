@@ -547,3 +547,7 @@
   .wkwin::after{background:linear-gradient(rgba(212,167,44,.14),rgba(212,167,44,.14)),var(--card)}
   .htcbox{background:linear-gradient(rgba(214,69,69,.10),rgba(214,69,69,.10)),var(--card)}
   .pushbox{background:linear-gradient(rgba(47,128,237,.10),rgba(47,128,237,.10)),var(--card)}
+
+  .grid tfoot tr.mtot td{font-weight:800}
+  .grid tfoot tr.gpushsep td{border-top:2px solid var(--muted)}
+  .grid tfoot tr.mgrand td{font-weight:900;border-top:3px double var(--muted);background:var(--chip)}
