@@ -63,6 +63,7 @@ function setView(v){VIEW=v;try{localStorage.setItem('pickemView',v);}catch(e){}r
 let SWIPING=false, RENDER_PENDING=false;   // never redraw the page under a finger mid-swipe (it would drop the gesture)
 function render(){
   if(SWIPING){ RENDER_PENDING=true; return; }
+  if(GFULL&&!(TAB==='week'&&VIEW==='grid')){ GFULL=false; document.documentElement.classList.remove('gfull'); }
   const app=document.getElementById('app'); if(!D) return;
   document.getElementById('scroller').classList.toggle('fill',TAB==='stand'||(TAB==='week'&&VIEW==='grid'));
   app.innerHTML = TAB==='home'?renderHome():TAB==='pick'?renderPick():TAB==='week'?renderWeek():TAB==='stand'?renderStand():TAB==='push'?renderPush():renderHtc();
@@ -130,6 +131,11 @@ function miniCard(g){
     <div class="ft"><span class="${isLive(g.status)?'moved':''}">${st}</span><span>›</span></div></div>`;
 }
 let GSEL=new Set(), GSELOPEN=false;
+/* Full-screen Sheet: hides the app header, week header and view tabs so the table gets the whole screen */
+let GFULL=false;
+const ICON_EXPAND='<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const ICON_SHRINK='<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function setFull(on){ GFULL=!!on; document.documentElement.classList.toggle('gfull',GFULL); GSELOPEN=false; GFOPEN=false; render(); if(typeof layout==='function') layout(); const sc=document.getElementById('scroller'); if(sc) sc.scrollTop=0; }
 /* Sheet view: game filter + zoom */
 let GFSETS=[], GFGAMES=[];
 let GF='all', GFSEL=new Set(), GFOPEN=false;
@@ -172,13 +178,15 @@ function gridView(gs){
   if(!HS[WEEK]) loadSchedule(WEEK);
   const shown=filterGames(gs);
   const sets=[...new Set(gs.map(gameSetOf).filter(Boolean))];
-  let h=`<div class="gsel"><button class="gselbtn${GSEL.size?' on':''}" onclick="GFOPEN=false;toggleGselPanel()">👥 ${GSEL.size?esc(sel.slice(0,3).join(', '))+(sel.length>3?' +'+(sel.length-3):''):'People'} <span class="caret">${GSELOPEN?'▴':'▾'}</span></button>
+  let h=`<div class="gsel"><button class="gselbtn${GSEL.size?' on':''}" onclick="GFOPEN=false;toggleGselPanel()">👥${GFULL?(GSEL.size?' '+GSEL.size:''):' '+(GSEL.size?esc(sel.slice(0,3).join(', '))+(sel.length>3?' +'+(sel.length-3):''):'People')} <span class="caret">${GSELOPEN?'▴':'▾'}</span></button>
     ${GSEL.size?`<button class="gchip clr" onclick="clearGsel()">✕ Show all</button>`:''}
     ${GSELOPEN?`<div class="gselpanel"><div class="gselgrid">${D.players.map((n,i)=>`<label class="gselopt"><input type="checkbox" ${GSEL.has(n)?'checked':''} onchange="toggleGsel(D.players[${i}])"> ${esc(n)}</label>`).join('')}</div>
       <div class="gselfoot"><a href="#" onclick="clearGsel();return false;">Clear</a><button class="gchip on" onclick="toggleGselPanel()">Done</button></div></div>`:''}
-    <button class="gselbtn${GF!=='all'?' on':''}" onclick="toggleGFPanel()">🏈 ${esc(gfLabel())} <span class="caret">${GFOPEN?'▴':'▾'}</span></button>
+    <button class="gselbtn${GF!=='all'?' on':''}" onclick="toggleGFPanel()">🏈${GFULL?(GF!=='all'?' •':''):' '+esc(gfLabel())} <span class="caret">${GFOPEN?'▴':'▾'}</span></button>
     ${GF!=='all'?`<button class="gchip clr" onclick="setGF('all')">✕</button>`:''}
+    ${GFULL?`<span class="gfwk"><button onclick="setWeek(-1)" aria-label="Previous week">‹</button>Wk ${WEEK}<button onclick="setWeek(1)" aria-label="Next week">›</button></span>`:''}
     <span class="gzoom"><button onclick="setZoom(GZOOM-.1)" aria-label="Zoom out">−</button><span id="gzl" onclick="setZoom(1)" title="Reset">${Math.round(GZOOM*100)}%</span><button onclick="setZoom(GZOOM+.1)" aria-label="Zoom in">+</button></span>
+    <button class="gfullbtn${GFULL?' on':''}" onclick="setFull(${GFULL?'false':'true'})" aria-label="${GFULL?'Exit full screen':'Full screen'}" title="${GFULL?'Exit full screen':'Full screen'}">${GFULL?ICON_SHRINK:ICON_EXPAND}</button>
     ${GFOPEN?`<div class="gselpanel gfpanel"><div class="gflbl">Show</div><div class="gfrow">${[['all','All games'],['final','Completed'],['live','Live'],['remaining','Remaining']].map(([k,l])=>`<button class="gchip${GF===k?' on':''}" onclick="setGF('${k}')">${l}</button>`).join('')}</div>
       ${sets.length?`<div class="gflbl">Game sets</div><div class="gfrow">${sets.map((s,i)=>`<button class="gchip${GF==='set:'+s?' on':''}" onclick="setGF('set:'+GFSETS[${i}])">${esc(s)}</button>`).join('')}</div>`:''}
       <div class="gflbl">Games</div><div class="gselgrid">${gs.map((g,i)=>`<label class="gselopt"><input type="checkbox" ${GFSEL.has(g.game)?'checked':''} onchange="toggleGFgame(GFGAMES[${i}])"> ${esc((D.abbrs||{})[g.away]||g.away)} @ ${esc((D.abbrs||{})[g.home]||g.home)}</label>`).join('')}</div>
