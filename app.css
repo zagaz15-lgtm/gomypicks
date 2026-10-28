@@ -553,3 +553,16 @@
   .grid tfoot tr.tbrow td,.grid tfoot tr.wyrow td{border-bottom:3px solid var(--muted)}
   .grid tfoot tr.wltot td{border-bottom:4px double var(--muted)}
   .grid tfoot tr.mgrand td{border-top:4px double var(--muted)}
+
+  /* Sheet full-screen mode */
+  .gfullbtn{flex:none;width:32px;height:30px;border:1px solid var(--line);border-radius:9px;background:var(--chip);color:var(--ink);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+  .gfullbtn.on{background:var(--navy);border-color:var(--navy);color:#fff}
+  html.gfull header{display:none!important}
+  html.gfull .wkhead{display:none}
+  html.gfull main{padding:6px 6px 4px;max-width:none}
+  html.gfull #app>.foot{display:none}
+  html:not(.shell).gfull .gridwrap{max-height:calc(100vh - 56px)}
+  html.gfull .gsel{margin-bottom:6px}
+  .gfwk{flex:none;display:inline-flex;align-items:center;gap:2px;font-size:12.5px;font-weight:800;border:1px solid var(--line);border-radius:999px;background:var(--chip);color:var(--ink)}
+  .gfwk button{border:0;background:none;color:var(--ink);font-size:16px;font-weight:800;width:24px;height:28px;cursor:pointer}
+  html.gfull .gsel .gselbtn{max-width:30%}
