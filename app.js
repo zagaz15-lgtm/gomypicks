@@ -198,13 +198,13 @@ function gridView(gs){
   });
   const row=(lbl,f,cls)=>`<tr${cls?` class="${cls}"`:''}><td class="stick">${lbl}</td><td></td><td></td><td></td>`+ppl.map(n=>`<td>${f(n)}</td>`).join('')+'</tr>';
   h+='</tbody><tfoot>'+
-    row('Tie breaker',n=>{const v=(D.tiebreak[n]||[])[WEEK-1];return v==null?'':v;})+
+    row('Tie breaker',n=>{const v=(D.tiebreak[n]||[])[WEEK-1];return v==null?'':v;},'tbrow')+
     row('Wins this week',n=>{const v=D.wkPts[WEEK+'|'+n]||0;return weekFinal(WEEK)&&v<=3?`<span class="neg">${v} HTC</span>`:v;})+
     row('Wins prev. weeks',n=>prevPts(n))+
-    row('Wins this year',n=>(D.wkPts[WEEK+'|'+n]||0)+prevPts(n))+
+    row('Wins this year',n=>(D.wkPts[WEEK+'|'+n]||0)+prevPts(n),'wyrow')+
     row('$ this week',n=>money(winLoseMoney(n,WEEK)))+
     row('$ prev. weeks',n=>money(sumWeeks(winLoseMoney,n,WEEK-1)))+
-    row('$ total',n=>money(sumWeeks(winLoseMoney,n,WEEK)),'mtot')+
+    row('$ total',n=>money(sumWeeks(winLoseMoney,n,WEEK)),'mtot wltot')+
     row('$ Push / HTC this week',n=>sheetMoney(n,WEEK)==null?'':money(pushHtcMoney(n,WEEK)),'gpushsep')+
     row('$ Push / HTC prev. weeks',n=>money(sumWeeks(pushHtcMoney,n,WEEK-1)))+
     row('$ Push / HTC total',n=>money(sumWeeks(pushHtcMoney,n,WEEK)),'mtot')+
