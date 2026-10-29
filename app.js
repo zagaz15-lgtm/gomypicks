@@ -125,7 +125,7 @@ function gameCard(g){
 function miniCard(g){
   const fin=g.status==='Final', gi=D.games.indexOf(g);
   const row=(t,sc)=>`<div class="r${fin&&g.winner===t?' cover':''}">${logo(t)}<span class="nm">${esc(t)}</span><span class="s">${sc===''?'':sc}</span></div>`;
-  const st=fin?esc('Final'):isLive(g.status)?esc(g.status):(g.spread!==''?DKLOCK+esc((g.dog===g.home?g.away:g.home)+' −'+g.spread):'');
+  const st=fin?esc('Final'):isLive(g.status)?esc(g.status):(g.spread!==''?(()=>{ const f=g.dog===g.home?g.away:g.home; return DKLOCK+`<span class="dkfav">${logo(f)}${esc((D.abbrs||{})[f]||f)} −${g.spread}</span>`; })():'');
   return `<div class="mini" onclick="openGame(${gi})">${row(g.away,g.as)}${row(g.home,g.hs)}
     <div class="ft"><span class="${isLive(g.status)?'moved':''}">${st}</span><span>›</span></div></div>`;
 }
