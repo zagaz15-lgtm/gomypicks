@@ -112,7 +112,8 @@ function dkText(g){
   if(g.line==null) return '';
   const fav=g.line<0?g.home:g.line>0?g.away:null; const now=fav?fav+' −'+Math.abs(g.line):'PK';
   const lockedFav=g.spread!==''?(g.dog===g.home?g.away:g.home):null; const moved=lockedFav&&(fav!==lockedFav||Math.abs(g.line)!==Number(g.spread));
-  return `<span class="dknow">${DK_IMG}${isStarted(g)?'close':'now'}:</span> <span class="${moved?'moved':''}">${esc(now)}</span>`;
+  const shown=fav?`<span class="dkfav">${logo(fav)}${esc((D.abbrs||{})[fav]||fav)} −${Math.abs(g.line)}</span>`:'PK';   // small logo + abbreviation instead of the full team name
+  return `<span class="dknow">${DK_IMG}${isStarted(g)?'close':'now'}:</span> <span class="${moved?'moved':''}">${shown}</span>`;
 }
 function pillFor(g){const fin=g.status==='Final';
   return fin?'<span class="pill final">Final</span>':isLive(g.status)?`<span class="pill live">${esc(g.status)}</span>`:`<span class="pill">${esc(g.status)}</span>`;}
