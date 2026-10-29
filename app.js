@@ -60,6 +60,7 @@ function setView(v){VIEW=v;try{localStorage.setItem('pickemView',v);}catch(e){}r
 let SWIPING=false, RENDER_PENDING=false;   // never redraw the page under a finger mid-swipe (it would drop the gesture)
 function render(){
   if(SWIPING){ RENDER_PENDING=true; return; }
+  setTimeout(()=>{ if(TAB==='week'&&VIEW==='grid') fitTeamRecs(); },0);
   if(GFULL&&!(TAB==='week'&&VIEW==='grid')){ GFULL=false; document.documentElement.classList.remove('gfull'); }
   const app=document.getElementById('app'); if(!D) return;
   document.getElementById('scroller').classList.toggle('fill',TAB==='stand'||(TAB==='week'&&VIEW==='grid'));
@@ -158,8 +159,15 @@ function filterGames(gs){
   return gs;
 }
 function gfLabel(){ return GF==='all'?'All games':GF==='final'?'Completed':GF==='live'?'Live':GF==='remaining'?'Remaining':GF==='pick'?GFSEL.size+' game'+(GFSEL.size===1?'':'s'):GF.slice(4); }
+function fitTeamRecs(){
+  document.querySelectorAll('table.grid td.tcell').forEach(td=>{
+    td.classList.remove('recwrap'); const r=td.querySelector('.trec'); if(!r||!r.textContent) return;
+    const tr=td.getBoundingClientRect(), rr=r.getBoundingClientRect(), pad=parseFloat(getComputedStyle(td).paddingRight)||0;
+    if(rr.left+r.scrollWidth>tr.right-pad) td.classList.add('recwrap');
+  });
+}
 function setZoom(z){ GZOOM=Math.max(.6,Math.min(1.8,Math.round(z*100)/100)); try{ localStorage.setItem('gmpGridZoom',GZOOM); }catch(e){}
-  const t=document.querySelector('table.grid'); if(t) t.style.setProperty('--gz',GZOOM); const l=document.getElementById('gzl'); if(l) l.textContent=Math.round(GZOOM*100)+'%'; }
+  const t=document.querySelector('table.grid'); if(t) t.style.setProperty('--gz',GZOOM); const l=document.getElementById('gzl'); if(l) l.textContent=Math.round(GZOOM*100)+'%'; requestAnimationFrame(fitTeamRecs); }
 // two-finger pinch on the sheet zooms the table (not the whole page)
 (function(){
   let d0=0, z0=1; const dist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
@@ -197,7 +205,7 @@ function gridView(gs){
     const pm=D.pickMap[WEEK+'|'+g.game]||{}, fin=g.status==='Final';
     [['a',g.away,g.as,adjOf(g,g.away)],['h',g.home,g.hs,adjOf(g,g.home)]].forEach(([s,t,sc,adj])=>{
       const cov=fin&&g.winner===t;
-      h+=`<tr class="${s==='h'?'home':''}"><td class="stick${cov?' cov':''}">${logo(t)}${esc(t)}</td><td class="${cov?'cov':''}">${t!==g.dog?'−'+g.spread:''}</td>
+      h+=`<tr class="${s==='h'?'home':''}"><td class="stick tcell${cov?' cov':''}">${logo(t)}<span class="tn">${esc(t)}<span class="trec">${(D.records||{})[t]?'('+esc(D.records[t])+')':''}</span></span></td><td class="${cov?'cov':''}">${t!==g.dog?'−'+g.spread:''}</td>
           <td class="${cov?'cov':''}">${sc}</td><td class="${cov?'cov':''}">${adj}</td>`+
         ppl.map(n=>{const p=pm[n]; let m=p===t?'X':(p==='Push'?'PUSH':''); const ok=fin&&((m==='X'&&g.winner===t)||(m==='PUSH'&&g.winner==='Push'));
           return `<td class="${ok?'ok':''}">${m}</td>`;}).join('')+'</tr>';
