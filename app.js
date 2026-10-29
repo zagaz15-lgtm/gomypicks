@@ -10,7 +10,7 @@ const SEASON_YEAR=(d=>d.getMonth()<2?d.getFullYear()-1:d.getFullYear())(new Date
 let SPN=0;
 const throwSVG=()=>{ const id='t'+(++SPN); return `<svg class="throw" viewBox="0 0 260 110" aria-hidden="true"><defs><path id="arc${id}" d="M 30 92 Q 130 -6 230 92"/><clipPath id="rv${id}"><rect x="0" y="0" height="110" width="0"><animate attributeName="width" from="0" to="260" dur="1.6s" repeatCount="indefinite"/></rect></clipPath></defs><use href="#arc${id}" fill="none" stroke="currentColor" stroke-width="2.5" stroke-dasharray="5 6" stroke-linecap="round" clip-path="url(#rv${id})" opacity=".55"><animate attributeName="opacity" values="0;.55;.55;0" keyTimes="0;0.1;0.85;1" dur="1.6s" repeatCount="indefinite"/></use><g><animateMotion dur="1.6s" repeatCount="indefinite" rotate="auto" keyPoints="0;1" keyTimes="0;1" calcMode="spline" keySplines="0.35 0 0.65 1"><mpath href="#arc${id}"/></animateMotion><g transform="translate(-21,-14) scale(0.35)"><path d="M4 40 C 20 3, 100 3, 116 40 C 100 77, 20 77, 4 40 Z" fill="#8B4A1C" stroke="#fff" stroke-width="3"/><path d="M27 15 C 21 30, 21 50, 27 65 M93 15 C 99 30, 99 50, 93 65" fill="none" stroke="#fff" stroke-width="3"/><path d="M46 17 H74 M50 13 V21 M56 13 V21 M62 13 V21 M68 13 V21" stroke="#fff" stroke-width="2" stroke-linecap="round"/><text x="60" y="44" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="15" fill="#fff">GO MY</text><text x="60" y="61" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="15" fill="#fff">PICKS!</text></g></g></svg>`; };
 const spinner=(msg,sm)=>`<div class="spin${sm?' sm':''}">${throwSVG()}${msg||'Loading…'}</div>`;
-var D=null; let WEEK=null, VIEW='games', TAB='home', HS={}, CDT=null;
+var D=null; let WEEKAUTO=true; let WEEK=null, VIEW='games', TAB='home', HS={}, CDT=null;
 try{VIEW=localStorage.getItem('pickemView')||'games';}catch(e){}
 let THEME='auto'; try{THEME=localStorage.getItem('pickemTheme')||'auto';}catch(e){}
 function applyTheme(){const r=document.documentElement; if(THEME==='auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme',THEME);
@@ -37,10 +37,7 @@ function load_(json){
   });
   D.weeks=[...new Set(D.games.map(g=>g.week))].sort((a,b)=>a-b);
   setTimeout(updateBoardDot,0); setTimeout(updateSignBtn,0);
-  if(WEEK==null){
-    const started=D.weeks.filter(w=>D.games.some(g=>g.week===w&&g.status!=='Not started'));
-    WEEK=started.length?started[started.length-1]:D.weeks[D.weeks.length-1];
-  }
+  if(WEEK==null||WEEKAUTO) WEEK=autoHomeWeek();     // same timing as Home: a finished week stays up until Wednesday
   render();
 }
 function weekMoney(name,uptoWeek){ // running total through uptoWeek (inclusive)
@@ -58,7 +55,7 @@ function winLoseMoney(name,wk){ const v=sheetMoney(name,wk); return v==null?null
 function sumWeeks(f,name,upto){ let t=0; for(let w=1;w<=upto;w++){ if(sheetMoney(name,w)!=null) t+=f(name,w)||0; } return t; }
 function thisWeekMoney(name,wk){ const m=(D.money||{})[name]||[]; const v=m[wk-1]; return v==null?null:v; }
 function tab(t){TAB=t;document.getElementById('scroller').scrollTop=0;try{window.scrollTo(0,0);}catch(e){}[['tHome','home'],['tPick','pick'],['tWeek','week'],['tStand','stand'],['tPush','push'],['tHtc','htc']].forEach(([id,k])=>document.getElementById(id).className=t===k?'on':'');render();}
-function setWeek(d){const i=D.weeks.indexOf(WEEK)+d; if(i>=0&&i<D.weeks.length){WEEK=D.weeks[i];render();}}
+function setWeek(d){const i=D.weeks.indexOf(WEEK)+d; if(i>=0&&i<D.weeks.length){WEEK=D.weeks[i]; WEEKAUTO=(WEEK===autoHomeWeek()); render();}}
 function setView(v){VIEW=v;try{localStorage.setItem('pickemView',v);}catch(e){}render();}
 let SWIPING=false, RENDER_PENDING=false;   // never redraw the page under a finger mid-swipe (it would drop the gesture)
 function render(){
@@ -70,6 +67,7 @@ function render(){
   layout();
 }
 function renderWeek(){
+  if(WEEKAUTO) WEEK=autoHomeWeek();                // follows Home's week until you pick a different week here
   const gs=D.games.filter(g=>g.week===WEEK);
   const fin=gs.filter(g=>g.status==='Final').length;
   const wn=D.winners[WEEK-1]||'';
