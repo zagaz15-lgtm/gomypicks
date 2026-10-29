@@ -575,3 +575,5 @@
   .grid .tn{display:inline}
   .grid .trec{display:inline-block;width:0;overflow:visible;white-space:nowrap;margin-left:calc(4px * var(--gz));font-size:calc(10px * var(--gz));font-weight:400;color:var(--muted);vertical-align:baseline}
   .grid td.tcell.recwrap .trec{display:block;width:auto;margin:1px 0 0 calc(22px * var(--gz));line-height:1}
+  .sec td .dkfav,.sec td .dknow{vertical-align:middle}.sec td .dklock{margin-right:0}
+  .sec table td{vertical-align:middle}.sec td .dklock{display:inline-flex;vertical-align:middle}
