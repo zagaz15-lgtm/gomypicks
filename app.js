@@ -617,10 +617,10 @@ function drawDetail(){
      <div class="sub">${esc(d.detail||g.status)}${d.venue?' · '+esc(d.venue):''}${d.broadcast?' · '+esc(d.broadcast):''}</div></div>`;
   // spread
   const fav=g.spread!==''?(g.dog===g.home?g.away:g.home):null;
-  h+=`<div class="sec"><h3>Against the spread</h3><table><tr><td class="l">Locked line</td><td>${fav?esc(fav)+' −'+g.spread:'—'}</td></tr>
+  h+=`<div class="sec"><h3>Against the spread</h3><table><tr><td class="l" title="Locked line">${DKLOCK}</td><td>${fav?`<span class="dkfav">${logo(fav)}${esc((D.abbrs||{})[fav]||fav)} −${g.spread}</span>`:'—'}</td></tr>
      ${adjOf(g,g.away)!==''?`<tr><td class="l">Adjusted score</td><td>${esc(g.away)} ${adjOf(g,g.away)} – ${adjOf(g,g.home)} ${esc(g.home)}</td></tr>`:''}
      ${g.winner?`<tr><td class="l">${fin?'Covered':'Covering now'}</td><td><b>${esc(g.winner)}</b></td></tr>`:''}
-     ${dkText(g)?`<tr><td class="l">${isStarted(g)?'DK line at close':'Current DK line'}</td><td>${dkText(g).replace(/^<span class="dknow">.*?<\/span> /,'')}</td></tr>`:''}</table></div>`;
+     ${dkText(g)?`<tr><td class="l" title="${isStarted(g)?'DraftKings line at close':'Current DraftKings line'}"><span class="dknow">${DK_IMG}${isStarted(g)?'close':'now'}</span></td><td>${dkText(g).replace(/^<span class="dknow">.*?<\/span> /,'')}</td></tr>`:''}</table></div>`;
   if(d.error) h+=`<div class="sec muted">Couldn’t load live details: ${esc(d.error)}</div>`;
   else if(!GD) h+=`<div class="sec">${spinner('Loading game details…',1)}</div>`;
   // game center: gamecast · box score · play-by-play · team stats · recap (stays here after the game)
