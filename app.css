@@ -569,3 +569,9 @@
   .dkfav{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}.dkfav .logo{width:16px;height:16px;margin:0}
   .meta .dknow,.meta .dkfav{vertical-align:middle}.meta>span:last-child{display:inline-flex;align-items:center;gap:4px}
   .mini .ft{border-top:1px solid var(--line);margin-top:6px;padding-top:6px}
+
+  /* team record after the name — takes no width of its own, so the Team column never gets wider */
+  .grid td.tcell{white-space:nowrap}
+  .grid .tn{display:inline}
+  .grid .trec{display:inline-block;width:0;overflow:visible;white-space:nowrap;margin-left:calc(4px * var(--gz));font-size:calc(10px * var(--gz));font-weight:400;color:var(--muted);vertical-align:baseline}
+  .grid td.tcell.recwrap .trec{display:block;width:auto;margin:1px 0 0 calc(22px * var(--gz));line-height:1}
