@@ -566,3 +566,5 @@
   .gfwk{flex:none;display:inline-flex;align-items:center;gap:2px;font-size:12.5px;font-weight:800;border:1px solid var(--line);border-radius:999px;background:var(--chip);color:var(--ink)}
   .gfwk button{border:0;background:none;color:var(--ink);font-size:16px;font-weight:800;width:24px;height:28px;cursor:pointer}
   html.gfull .gsel .gselbtn{max-width:30%}
+  .dkfav{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}.dkfav .logo{width:16px;height:16px;margin:0}
+  .meta .dknow,.meta .dkfav{vertical-align:middle}.meta>span:last-child{display:inline-flex;align-items:center;gap:4px}
