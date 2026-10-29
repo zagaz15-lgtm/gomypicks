@@ -568,3 +568,4 @@
   html.gfull .gsel .gselbtn{max-width:30%}
   .dkfav{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}.dkfav .logo{width:16px;height:16px;margin:0}
   .meta .dknow,.meta .dkfav{vertical-align:middle}.meta>span:last-child{display:inline-flex;align-items:center;gap:4px}
+  .mini .ft{border-top:1px solid var(--line);margin-top:6px;padding-top:6px}
