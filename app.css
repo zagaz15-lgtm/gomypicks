@@ -577,3 +577,9 @@
   .grid td.tcell.recwrap .trec{display:block;width:auto;margin:1px 0 0 calc(22px * var(--gz));line-height:1}
   .sec td .dkfav,.sec td .dknow{vertical-align:middle}.sec td .dklock{margin-right:0}
   .sec table td{vertical-align:middle}.sec td .dklock{display:inline-flex;vertical-align:middle}
+
+  /* Against the spread: a compact table centered in the box (label right-aligned next to its value) */
+  .atstbl{width:auto;margin:0 auto}
+  .atstbl td{padding:8px 10px}
+  .atstbl td.l{text-align:right;white-space:nowrap}
+  .atstbl td:last-child{text-align:left}
