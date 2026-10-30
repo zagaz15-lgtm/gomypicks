@@ -583,3 +583,13 @@
   .atstbl td{padding:8px 10px}
   .atstbl td.l{text-align:right;white-space:nowrap}
   .atstbl td:last-child{text-align:left}
+
+  .toiletbox{border:3px solid #8B5A2B;background:linear-gradient(rgba(139,90,43,.10),rgba(139,90,43,.10)),var(--card)}
+  .toiletbox .wkbl{color:#8B5A2B}
+  @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .toiletbox .wkbl{color:#c8945a}}
+  :root[data-theme="dark"] .toiletbox .wkbl{color:#c8945a}
+  /* Standings: keep columns readable and scroll sideways instead of squeezing; name column stays put */
+  .standtbl table{min-width:560px;white-space:nowrap}
+  .standtbl td.l,.standtbl th.l{position:sticky;left:0;background:var(--card);z-index:1}
+  .standtbl thead th.l{z-index:3}
+  .standtbl tr.top td.l{background:inherit}
