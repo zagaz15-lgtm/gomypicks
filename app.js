@@ -77,7 +77,7 @@ function render(){
   setTimeout(()=>{ if(TAB==='week'&&VIEW==='grid') fitTeamRecs(); },0);
   if(GFULL&&!(TAB==='week'&&VIEW==='grid')){ GFULL=false; document.documentElement.classList.remove('gfull'); }
   const app=document.getElementById('app'); if(!D) return;
-  document.getElementById('scroller').classList.toggle('fill',TAB==='stand'||(TAB==='week'&&VIEW==='grid'));
+  document.getElementById('scroller').classList.toggle('fill',TAB==='stand'||(TAB==='week'&&(VIEW==='grid'||VIEW==='board')));
   app.innerHTML = TAB==='home'?renderHome():TAB==='pick'?renderPick():TAB==='week'?renderWeek():TAB==='stand'?renderStand():TAB==='push'?renderPush():renderHtc();
   layout();
 }
@@ -256,7 +256,7 @@ function boardView(){
   const rows=D.players.map(n=>({n,mx:race[n]?race[n].max:maxPts(n,WEEK),alive:race[n]?race[n].alive:null,wk:D.wkPts[WEEK+'|'+n]||0,tb:(D.tiebreak[n]||[])[WEEK-1],yr:(D.wkPts[WEEK+'|'+n]||0)+prevPts(n),m:weekMoney(n,WEEK)}))
     .sort((a,b)=>b.wk-a.wk||b.yr-a.yr);
   const max=rows.length?rows[0].wk:0, done=weekFinal(WEEK);
-  return `<div class="card"><table><thead><tr><th class="l">Name</th><th>Wk ${WEEK}</th><th title="Most points still possible this week">Max</th><th>TB</th><th>Year</th><th>$ to date</th></tr></thead><tbody>`+
+  return `<div class="card scorestbl"><table><thead><tr><th class="l">Name</th><th>Wk ${WEEK}</th><th title="Most points still possible this week">Max</th><th>TB</th><th>Year</th><th>$ to date</th></tr></thead><tbody>`+
     rows.map(r=>`<tr class="${r.wk===max&&max>0?'top':''}"><td class="l">${esc(r.n)}${r.n===bookieName(WEEK)?' <span title="Bookie">★</span>':''}</td><td class="${weekFinal(WEEK)&&r.wk<=3?'neg':''}"><b>${r.wk}</b>${weekFinal(WEEK)&&r.wk<=3?' HTC':''}</td><td class="${done?'':((r.alive!=null?r.alive:r.mx>=max)?'alive':'outrun')}">${r.mx}</td><td>${r.tb==null?'':r.tb}</td><td>${r.yr}</td><td>${money(r.m)}</td></tr>`).join('')+
     '</tbody></table>'+(done?'':`<div class="foot" style="text-align:left;margin:6px 10px 8px"><b>Max</b> = most points still possible this week if every remaining game goes their way. <b>Green</b> = can still win or tie for the week (it checks everyone’s actual picks, so a rival who picked the same side gains too); <s>struck through</s> = can’t catch the leader.</div>`)+'</div>';
 }
@@ -1067,8 +1067,9 @@ function personColor(n){
   if(i>=0) return PCOLORS[i%PCOLORS.length];
   let h=0; for(const c of String(n||'')) h=(h*31+c.charCodeAt(0))>>>0; return PCOLORS[h%PCOLORS.length];
 }
-function avatar(n,cls,style){ return `<span class="av${cls?' '+cls:''}" style="background:${personColor(n)};${style||''}">${esc(initials(n))}</span>`; }
-function nameTag(n){ return `<b class="pname" style="color:${personColor(n)}">${esc(n)}</b>`; }
+function avatar(n,cls,style){ if(n==='Go My Picks') return `<span class="av sysav${cls?' '+cls:''}" style="${style||''}">🏈</span>`;
+  return `<span class="av${cls?' '+cls:''}" style="background:${personColor(n)};${style||''}">${esc(initials(n))}</span>`; }
+function nameTag(n){ return n==='Go My Picks'?`<b class="pname">Go My Picks <span class="sysbadge">auto</span></b>`:`<b class="pname" style="color:${personColor(n)}">${esc(n)}</b>`; }
 function rxBar(p){
   const rx=p.reactions||{}, keys=Object.keys(rx).filter(k=>rx[k]&&rx[k].length);
   const chips=keys.map(k=>`<button class="rx${ME&&rx[k].indexOf(ME)>=0?' me':''}" title="${esc(rx[k].join(', '))}" onclick="react('${p.id}','${k}')">${k} ${rx[k].length}</button>`).join('');
