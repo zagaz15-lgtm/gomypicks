@@ -10,6 +10,18 @@ const SEASON_YEAR=(d=>d.getMonth()<2?d.getFullYear()-1:d.getFullYear())(new Date
 let SPN=0;
 const throwSVG=()=>{ const id='t'+(++SPN); return `<svg class="throw" viewBox="0 0 260 110" aria-hidden="true"><defs><path id="arc${id}" d="M 30 92 Q 130 -6 230 92"/><clipPath id="rv${id}"><rect x="0" y="0" height="110" width="0"><animate attributeName="width" from="0" to="260" dur="1.6s" repeatCount="indefinite"/></rect></clipPath></defs><use href="#arc${id}" fill="none" stroke="currentColor" stroke-width="2.5" stroke-dasharray="5 6" stroke-linecap="round" clip-path="url(#rv${id})" opacity=".55"><animate attributeName="opacity" values="0;.55;.55;0" keyTimes="0;0.1;0.85;1" dur="1.6s" repeatCount="indefinite"/></use><g><animateMotion dur="1.6s" repeatCount="indefinite" rotate="auto" keyPoints="0;1" keyTimes="0;1" calcMode="spline" keySplines="0.35 0 0.65 1"><mpath href="#arc${id}"/></animateMotion><g transform="translate(-21,-14) scale(0.35)"><path d="M4 40 C 20 3, 100 3, 116 40 C 100 77, 20 77, 4 40 Z" fill="#8B4A1C" stroke="#fff" stroke-width="3"/><path d="M27 15 C 21 30, 21 50, 27 65 M93 15 C 99 30, 99 50, 93 65" fill="none" stroke="#fff" stroke-width="3"/><path d="M46 17 H74 M50 13 V21 M56 13 V21 M62 13 V21 M68 13 V21" stroke="#fff" stroke-width="2" stroke-linecap="round"/><text x="60" y="44" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="15" fill="#fff">GO MY</text><text x="60" y="61" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="15" fill="#fff">PICKS!</text></g></g></svg>`; };
 const spinner=(msg,sm)=>`<div class="spin${sm?' sm':''}">${throwSVG()}${msg||'Loading…'}</div>`;
+/* Game order: "sheet" = the order on the league's pick sheets (the Games tab order, set when the season's sheets
+   went out — the order we read picks off in); "live" = by current NFL kickoff time (follows schedule changes/flexes). */
+let GORDER='sheet'; try{ GORDER=localStorage.getItem('gmpOrder')||'sheet'; }catch(e){}
+function setOrder(o){ GORDER=o; try{ localStorage.setItem('gmpOrder',o); }catch(e){} render(); }
+function orderChip(){ return `<span class="ordtog" role="group" aria-label="Game order"><button class="${GORDER==='sheet'?'on':''}" onclick="setOrder('sheet')">Sheet order</button><button class="${GORDER==='live'?'on':''}" onclick="setOrder('live')">Live order</button></span>`; }
+function sheetIdx(g){ return D.games.indexOf(g); }
+function kickOf(g){ const ev=(Array.isArray(HS[g.week])?HS[g.week]:[]).find(e=>e.espnHome===g.espnHome); return ev&&ev.date?new Date(ev.date).getTime():null; }
+function orderGames(gs){
+  if(GORDER!=='live') return gs.slice().sort((a,b)=>sheetIdx(a)-sheetIdx(b));
+  const w=gs.length?gs[0].week:null; if(w!=null&&!HS[w]) loadSchedule(w);
+  return gs.slice().sort((a,b)=>{ const ka=kickOf(a), kb=kickOf(b); return (ka==null||kb==null)?sheetIdx(a)-sheetIdx(b):(ka-kb)||(sheetIdx(a)-sheetIdx(b)); });
+}
 var D=null; let WEEKAUTO=true; let WEEK=null, VIEW='games', TAB='home', HS={}, CDT=null;
 try{VIEW=localStorage.getItem('pickemView')||'games';}catch(e){}
 let THEME='auto'; try{THEME=localStorage.getItem('pickemTheme')||'auto';}catch(e){}
@@ -69,12 +81,13 @@ function render(){
 }
 function renderWeek(){
   if(WEEKAUTO) WEEK=autoHomeWeek();                // follows Home's week until you pick a different week here
-  const gs=D.games.filter(g=>g.week===WEEK);
+  const gs=orderGames(D.games.filter(g=>g.week===WEEK));
   const fin=gs.filter(g=>g.status==='Final').length;
   const wn=D.winners[WEEK-1]||'';
   let h=`<div class="wkhead"><div class="weeknav"><button onclick="setWeek(-1)">‹</button><div class="t"><b>Week ${WEEK}</b>
         <div>${bookieName(WEEK)?'★ Bookie: '+esc(bookieName(WEEK))+' · ':''}${fin} of ${gs.length} final${wn?' · '+esc(String(wn).indexOf('Leader:')===0?wn:'Winner: '+wn):''}</div></div>
         <button onclick="setWeek(1)">›</button></div>
+        <div class="ordrow">${orderChip()}</div>
         <div class="seg"><button class="${VIEW==='games'?'on':''}" onclick="setView('games')">List</button>
         <button class="${VIEW==='cards'?'on':''}" onclick="setView('cards')">Cards</button>
         <button class="${VIEW==='grid'?'on':''}" onclick="setView('grid')">Sheet</button>
@@ -820,9 +833,18 @@ function renderHome(){
   else if(sched.error){ h+=`<div class="sec muted">Couldn’t load kickoff times: ${esc(sched.error)}</div>`; }
   else{
     const groups=[], byKey={};
-    sched.slice().sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(ev=>{ const d=new Date(ev.date), s=slotOf(d);
-      if(!byKey[s.key]){byKey[s.key]={label:s.label,start:d,evs:[]};groups.push(byKey[s.key]);} byKey[s.key].evs.push(ev); });
-    h+=`<div class="sub" style="text-align:left;margin-top:12px"><b>Week ${w} kickoffs</b> · times shown in your time zone</div>`;
+    if(GORDER==='live'){
+      sched.slice().sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(ev=>{ const d=new Date(ev.date), s=slotOf(d);
+        if(!byKey[s.key]){byKey[s.key]={label:s.label,start:d,evs:[]};groups.push(byKey[s.key]);} byKey[s.key].evs.push(ev); });
+    } else {
+      // sheet order: games in the order on the pick sheet, with back-to-back games in the same time slot grouped together
+      const idx=ev=>{ const i=D.games.findIndex(g=>g.week===w&&g.espnHome===ev.espnHome); return i<0?1e9:i; };
+      let last=null;
+      sched.slice().sort((a,b)=>idx(a)-idx(b)||new Date(a.date)-new Date(b.date)).forEach(ev=>{ const d=new Date(ev.date), s=slotOf(d);
+        if(!last||last.key!==s.key){ last={key:s.key,label:s.label,start:d,evs:[]}; groups.push(last); }
+        last.evs.push(ev); if(d<last.start) last.start=d; });
+    }
+    h+=`<div class="sub" style="text-align:left;margin-top:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span><b>Week ${w} kickoffs</b> · times shown in your time zone</span>${orderChip()}</div>`;
     groups.forEach(gp=>{
       const live=gp.evs.some(e=>e.state==='in'), done=gp.evs.every(e=>e.state==='post');
       const right=done?'<div class="cd done">Final</div>':live?'<div class="cd live">LIVE</div>':`<div class="cd" data-t="${gp.start.getTime()}">${fmtCD(gp.start-Date.now())}</div>`;
@@ -890,11 +912,11 @@ function renderPick(){
       <div class="foot"><a href="#" onclick="switchMe();return false;" style="color:var(--navy)">Not ${esc(ME)}?</a></div></div>`;
   if(!MYLOADED) return spinner(`Loading your week ${w} picks…`);
   const evOf=g=>(Array.isArray(sched)?sched:[]).find(e=>e.espnHome===g.espnHome)||{};
-  const order=gs.slice().sort((a,b)=>(new Date(evOf(a).date||0))-(new Date(evOf(b).date||0)));
+  const order=GORDER==='live'?gs.slice().sort((a,b)=>(new Date(evOf(a).date||0))-(new Date(evOf(b).date||0))):orderGames(gs);
   const open=order.filter(g=>g.spread!==''&&!gameLocked(g,sched));
   const picked=gs.filter(g=>SEL[g.game]).length;
   const tbGame=gs.find(g=>g.tb);
-  let h=`<div class="sec"><div style="display:flex;justify-content:space-between;align-items:center"><div><b style="font-size:17px">Week ${w} picks</b><div class="muted" style="font-size:13px">${esc(ME)} · ${picked} of ${gs.length} picked${changedGames(w).length||String(TBIN)!==String(ORIGTB)?' · <span class="moved">unsaved changes</span>':''}</div></div>
+  let h=`<div class="sec"><div style="display:flex;justify-content:space-between;align-items:center"><div><b style="font-size:17px">Week ${w} picks</b> ${orderChip()}<div class="muted" style="font-size:13px">${esc(ME)} · ${picked} of ${gs.length} picked${changedGames(w).length||String(TBIN)!==String(ORIGTB)?' · <span class="moved">unsaved changes</span>':''}</div></div>
      <a href="#" onclick="openSignin();return false;" style="font-size:13px;color:var(--navy)">not you?</a></div>
      ${PMSG?`<div style="margin-top:8px;font-size:13px">${PMSG}</div>`:''}</div>`;
   if(!gs.some(g=>g.spread!=='')) h+=`<div class="sec muted">The week ${w} lines haven’t been locked in yet. Check back after the bookie loads them.</div>`;
