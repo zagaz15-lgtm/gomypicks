@@ -21,7 +21,8 @@ function kickOf(g){ const ev=(Array.isArray(HS[g.week])?HS[g.week]:[]).find(e=>e
 function orderGames(gs){
   if(GORDER!=='live') return gs.slice().sort((a,b)=>sheetIdx(a)-sheetIdx(b));
   const w=gs.length?gs[0].week:null; if(w!=null&&!HS[w]) loadSchedule(w);
-  return gs.slice().sort((a,b)=>{ const ka=kickOf(a), kb=kickOf(b); return (ka==null||kb==null)?sheetIdx(a)-sheetIdx(b):(ka-kb)||(sheetIdx(a)-sheetIdx(b)); });
+  const row=g=>D.games.indexOf(g);   // Games tab rows are in NFL schedule order — used until ESPN kickoff times arrive
+  return gs.slice().sort((a,b)=>{ const ka=kickOf(a), kb=kickOf(b); return (ka==null||kb==null)?row(a)-row(b):(ka-kb)||(row(a)-row(b)); });
 }
 var D=null; let WEEKAUTO=true; let WEEK=null, VIEW='games', TAB='home', HS={}, CDT=null;
 try{VIEW=localStorage.getItem('pickemView')||'games';}catch(e){}
@@ -708,7 +709,7 @@ function overlayLive(w){ const evs=HS[w]; if(!Array.isArray(evs)||!D) return fal
   return ch; }
 function liveWeeks(){ return D?[...new Set(D.games.filter(g=>isStarted(g)&&g.status!=='Final').map(g=>g.week))]:[]; }
 function loadSchedule(w){
-  google.script.run.withSuccessHandler(j=>{HS[w]=JSON.parse(j); const ch=overlayLive(w); if(TAB==='home'||TAB==='pick'||(TAB==='week'&&VIEW==='grid')||ch) render();})
+  google.script.run.withSuccessHandler(j=>{HS[w]=JSON.parse(j); const ch=overlayLive(w); if(TAB==='home'||TAB==='pick'||(TAB==='week'&&(VIEW==='grid'||GORDER==='live'))||ch) render();})
     .withFailureHandler(e=>{HS[w]={error:e.message}; if(TAB==='home'||TAB==='pick') render();}).getWeekSchedule(w);
 }
 let BKOPEN={cur:false,next:false};
