@@ -15,7 +15,8 @@ const spinner=(msg,sm)=>`<div class="spin${sm?' sm':''}">${throwSVG()}${msg||'Lo
 let GORDER='sheet'; try{ GORDER=localStorage.getItem('gmpOrder')||'sheet'; }catch(e){}
 function setOrder(o){ GORDER=o; try{ localStorage.setItem('gmpOrder',o); }catch(e){} render(); }
 function orderChip(){ return `<span class="ordtog" role="group" aria-label="Game order"><button class="${GORDER==='sheet'?'on':''}" onclick="setOrder('sheet')">Sheet order</button><button class="${GORDER==='live'?'on':''}" onclick="setOrder('live')">Live order</button></span>`; }
-function sheetIdx(g){ return D.games.indexOf(g); }
+// position on the printed league sheet (Games tab column U "Sheet #"); falls back to the Games tab row order
+function sheetIdx(g){ return g.sheetNo!=null&&!isNaN(g.sheetNo)?g.sheetNo:1000+D.games.indexOf(g); }
 function kickOf(g){ const ev=(Array.isArray(HS[g.week])?HS[g.week]:[]).find(e=>e.espnHome===g.espnHome); return ev&&ev.date?new Date(ev.date).getTime():null; }
 function orderGames(gs){
   if(GORDER!=='live') return gs.slice().sort((a,b)=>sheetIdx(a)-sheetIdx(b));
@@ -838,7 +839,7 @@ function renderHome(){
         if(!byKey[s.key]){byKey[s.key]={label:s.label,start:d,evs:[]};groups.push(byKey[s.key]);} byKey[s.key].evs.push(ev); });
     } else {
       // sheet order: games in the order on the pick sheet, with back-to-back games in the same time slot grouped together
-      const idx=ev=>{ const i=D.games.findIndex(g=>g.week===w&&g.espnHome===ev.espnHome); return i<0?1e9:i; };
+      const idx=ev=>{ const g=D.games.find(x=>x.week===w&&x.espnHome===ev.espnHome); return g?sheetIdx(g):1e9; };
       let last=null;
       sched.slice().sort((a,b)=>idx(a)-idx(b)||new Date(a.date)-new Date(b.date)).forEach(ev=>{ const d=new Date(ev.date), s=slotOf(d);
         if(!last||last.key!==s.key){ last={key:s.key,label:s.label,start:d,evs:[]}; groups.push(last); }
