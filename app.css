@@ -593,3 +593,10 @@
   .standtbl td.l,.standtbl th.l{position:sticky;left:0;background:var(--card);z-index:1}
   .standtbl thead th.l{z-index:3}
   .standtbl tr.top td.l{background:inherit}
+
+  .ordtog{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--chip);vertical-align:middle}
+  .ordtog button{border:0;background:none;color:var(--muted);font-size:11.5px;font-weight:700;padding:4px 9px;cursor:pointer}
+  .ordtog button.on{background:var(--navy);color:#fff}
+  @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .ordtog button.on{color:#111418}}
+  :root[data-theme="dark"] .ordtog button.on{color:#111418}
+  .ordrow{display:flex;justify-content:center;margin:6px 0 2px}
