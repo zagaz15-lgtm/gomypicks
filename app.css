@@ -600,3 +600,10 @@
   @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .ordtog button.on{color:#111418}}
   :root[data-theme="dark"] .ordtog button.on{color:#111418}
   .ordrow{display:flex;justify-content:center;margin:6px 0 2px}
+
+  /* Week → Scores: header row stays put while the table scrolls */
+  .scorestbl{max-height:calc(var(--vh,100vh) - 300px);overflow:auto;padding-top:0}
+  html.shell #scroller.fill main>.scorestbl{flex:1;min-height:0;max-height:none}
+  .scorestbl thead th{position:sticky;top:0;z-index:2;background:var(--card);box-shadow:0 1px 0 var(--line)}
+  .sysav{background:#1f3864!important;font-size:15px}
+  .sysbadge{font-size:10px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-left:4px;vertical-align:1px}
