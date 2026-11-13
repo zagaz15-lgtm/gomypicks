@@ -267,8 +267,10 @@ const LOSER_CUP='data:image/webp;base64,UklGRr4nAABXRUJQVlA4WAoAAAAQAAAAbwAA7wAA
 // Toilet shot 🚽: miss one or more picks in a week (one game or a whole set) = one toilet shot for that week.
 // A game only counts once its picks are in the app (someone has a pick for it) — so a sheet that hasn't been
 // imported yet doesn't make everyone look like they missed.
+// "No Pick" (how a missed pick is recorded on the league sheet / Picks tab) counts as missing, same as a blank.
+function isNoPick(v){ return !v||/^(no ?pick|none|n\/?a|np|-+)$/i.test(String(v).trim()); }
 function missedPicks(n,w){ return D.games.filter(g=>{ if(g.week!==w||!isStarted(g)) return false; const pm=D.pickMap[w+'|'+g.game]||{};
-  return Object.keys(pm).some(k=>pm[k])&&!pm[n]; }); }
+  return Object.keys(pm).some(k=>!isNoPick(pm[k]))&&isNoPick(pm[n]); }); }
 function toiletWeeks(n){ return D.weeks.filter(w=>missedPicks(n,w).length>0); }
 function renderStand(){
   const S=D.standings; let pod='';
