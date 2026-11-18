@@ -592,7 +592,8 @@
   .standtbl table{min-width:560px;white-space:nowrap}
   .standtbl td.l,.standtbl th.l{position:sticky;left:0;background:var(--card);z-index:1}
   .standtbl thead th.l{z-index:3}
-  .standtbl tr.top td.l{background:inherit}
+  .standtbl tr.top td.l{background:var(--gold)}            /* opaque, so scrolled columns slide under the leader's name */
+  .standtbl td.l,.standtbl th.l{box-shadow:1px 0 0 var(--line)}
 
   .ordtog{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--chip);vertical-align:middle}
   .ordtog button{border:0;background:none;color:var(--muted);font-size:11.5px;font-weight:700;padding:4px 9px;cursor:pointer}
