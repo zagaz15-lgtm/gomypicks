@@ -278,9 +278,9 @@ function renderStand(){
     const leaders=S.filter(r=>r[2]===top).map(r=>r[1]), losers=S.filter(r=>r[2]===bot).map(r=>r[1]);
     pod=`<div class="podium"><div class="pod"><div class="lbl">🏆 Current #1</div>${cupSVG()}<div class="nm">${esc(leaders.join(' & '))}</div><div class="pts">${top} pts</div></div>
       <div class="pod last"><div class="lbl">Last place</div>${loserSVG()}<div class="nm">${esc(losers.join(' & '))}</div><div class="pts">${bot} pts</div></div></div>`; }
-  return pod+`<div class="card standtbl" style="margin-bottom:0"><table><thead><tr><th>#</th><th class="l">Name</th><th>Pts</th><th>Behind</th><th>Wks Won</th><th>Won/Lost</th><th title="Missed-push shots">🥃</th><th title="Toilet shots (missed picks)">🚽</th><th>Total shots</th><th>HTC</th></tr></thead><tbody>`+
-    D.standings.map(r=>`<tr class="${r[3]===0?'top':''}"><td>${r[0]}</td><td class="l">${esc(r[1])}</td><td><b>${r[2]}</b></td><td>${r[3]===0?'—':'−'+Math.abs(r[3])}</td><td>${r[4]}</td><td>${money(r[5])}</td><td>${r[6]?r[6]:''}</td><td>${(()=>{const t=toiletWeeks(r[1]).length;return t?t:'';})()}</td><td><b>${(()=>{const t=(Number(r[6])||0)+toiletWeeks(r[1]).length;return t?t:'';})()}</b></td><td>${r[7]?r[7]:''}</td></tr>`).join('')+
-    `</tbody></table><div class="foot" style="margin:10px 8px 14px">1 point per correct pick, 2 for a correct push · Week winner +$85, others −$5 · Correct push +$85, missed push −$5 (and a shot 🥃) · HTC entry −$5 · Missing any pick in a week = one toilet shot 🚽</div></div>`;
+  return pod+`<div class="card standtbl" style="margin-bottom:0"><table><thead><tr><th>#</th><th class="l">Name</th><th>Pts</th><th>Behind</th><th>Wks Won</th><th>Won/Lost</th><th title="Missed-push shots">🥃</th><th title="Toilet shots (missed picks)">🚽</th><th title="Hind Tit Club entries — one shot each">HTC</th><th>Total shots</th></tr></thead><tbody>`+
+    D.standings.map(r=>`<tr class="${r[3]===0?'top':''}"><td>${r[0]}</td><td class="l">${esc(r[1])}</td><td><b>${r[2]}</b></td><td>${r[3]===0?'—':'−'+Math.abs(r[3])}</td><td>${r[4]}</td><td>${money(r[5])}</td><td>${r[6]?r[6]:''}</td><td>${(()=>{const t=toiletWeeks(r[1]).length;return t?t:'';})()}</td><td>${r[7]?r[7]:''}</td><td><b>${(()=>{const t=(Number(r[6])||0)+toiletWeeks(r[1]).length+(Number(r[7])||0);return t?t:'';})()}</b></td></tr>`).join('')+
+    `</tbody></table><div class="foot" style="margin:10px 8px 14px">1 point per correct pick, 2 for a correct push · Week winner +$85, others −$5 · Correct push +$85, missed push −$5 (and a shot 🥃) · HTC entry −$5 (and a shot) · Missing any pick in a week = one toilet shot 🚽 · Total shots = 🥃 + 🚽 + HTC</div></div>`;
 }
 
 function layout(){
@@ -310,7 +310,7 @@ function renderHtc(){
     h+=`<tr><td class="stick">${w}${fin?'':' ⏳'}</td>`+D.players.map(n=>{ const pts=D.wkPts[w+'|'+n]||0; const inn=fin&&pts<=3; if(inn) tot[n]=(tot[n]||0)+1;
       return `<td class="${inn?'bad':''}">${inn?'HTC':''}</td>`;}).join('')+'</tr>'; });
   h+='</tbody><tfoot>'+`<tr><td class="stick">Entries</td>${D.players.map(n=>`<td class="${tot[n]?'bad':''}">${tot[n]||0}</td>`).join('')}</tr>`+
-    '</tfoot></table></div><div class="foot">Hind Tit Club: 3 points or fewer in a week, −$5 per entry (counted once every game that week is final; ⏳ = week in progress)</div>';
+    '</tfoot></table></div><div class="foot">Hind Tit Club: 3 points or fewer in a week, −$5 and a shot per entry (counted once every game that week is final; ⏳ = week in progress)</div>';
   return h;
 }
 
@@ -741,7 +741,7 @@ function winnerTime(w){ const lk=lastKick(w); return !!lk&&Date.now()>=nextDay(l
 function weekRecap(w){
   let out='';
   const htc=D.players.filter(n=>D.picks.some(p=>p[0]===w&&p[1]===n)&&(D.wkPts[w+'|'+n]||0)<=3);
-  if(htc.length) out+=`<div class="wkbox htcbox"><div class="wkbl">Hind Tit Club</div><div class="wkbn">${htc.map(esc).join('<br>')}</div></div>`;
+  if(htc.length) out+=`<div class="wkbox htcbox"><div class="wkbl">Hind Tit Club</div><div class="wkbn">${htc.map(esc).join('<br>')}</div><div class="muted" style="font-size:12px;margin-top:4px">−$5 and a shot 🥃 each</div></div>`;
   const hits=[], misses=[];
   D.games.filter(g=>g.week===w&&g.status==='Final').forEach(g=>{
     const pm=D.pickMap[w+'|'+g.game]||{}, short=`${esc((D.abbrs||{})[g.away]||g.away)} @ ${esc((D.abbrs||{})[g.home]||g.home)}`;
